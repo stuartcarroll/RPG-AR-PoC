@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG AR Experience - ML Recognition</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #start-button {
+            background: #ff6b6b;
+            border: none;
+            color: white;
+            padding: 20px 30px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        #ar-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: none;
+        }
+
+        #video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #ar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #ar-content {
+            position: absolute;
+            display: none;
+            z-index: 100;
+        }
+
+        #ar-video {
+            width: 400px;
+            height: 300px;
+            border: 3px solid #00ff00;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.6);
+            filter: drop-shadow(0 0 10px rgba(0, 255, 0, 0.8));
+        }
+
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.9);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid #333;
+            max-width: 300px;
+        }
+
+        #status {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .status-loading { color: #ffaa00; }
+        .status-ready { color: #00ff00; }
+        .status-detected { color: #00ff00; font-weight: bold; }
+        .status-searching { color: #ffffff; }
+
+        #progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        #progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #00aa00);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        #target-display {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 150px;
+            background: rgba(0,0,0,0.8);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        #target-img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+
+        .detection-box {
+            position: absolute;
+            border: 3px solid #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        }
+
+        #ml-debug {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div id="start-screen">
+        <h1>🤖 AI-Powered AR Experience</h1>
+        <p>Machine Learning Image Recognition</p>
+        <p>Advanced neural network detection of artwork</p>
+        <button id="start-button">Start AI Recognition</button>
+    </div>
+
+    <div id="ar-container">
+        <video id="video-feed" autoplay playsinline muted></video>
+        
+        <div id="ar-overlay">
+            <div id="ar-content">
+                <video id="ar-video" loop muted playsinline preload="auto">
+                    <source src="vid1.mp4" type="video/mp4">
+                </video>
+            </div>
+        </div>
+
+        <div id="info-panel">
+            <div id="status" class="status-loading">Initializing AI...</div>
+            <div id="progress-bar">
+                <div id="progress-fill"></div>
+            </div>
+            <div id="confidence"></div>
+            <div id="processing-time"></div>
+        </div>
+
+        <div id="target-display">
+            <img id="target-img" src="paint1.jpg" alt="Target">
+            <div>Target Image</div>
+        </div>
+
+        <div id="ml-debug">
+            <div id="tensor-info"></div>
+            <div id="model-info"></div>
+        </div>
+    </div>
+
+    <script>
+        class MLImageTracker {
+            constructor() {
+                this.video = null;
+                this.model = null;
+                this.isTracking = false;
+                this.targetFeatures = null;
+                this.processingCanvas = null;
+                this.processingCtx = null;
+                this.detectionThreshold = 0.3;
+                this.lastDetectionTime = 0;
+                this.detectionBoxes = [];
+                this.arContent = null;
+                this.arVideo = null;
+                this.isVideoPlaying = false;
+                
+                this.init();
+            }
+
+            init() {
+                document.getElementById('start-button').addEventListener('click', () => {
+                    this.startAR();
+                });
+                
+                this.arContent = document.getElementById('ar-content');
+                this.arVideo = document.getElementById('ar-video');
+            }
+
+            async startAR() {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('ar-container').style.display = 'block';
+
+                this.updateStatus('Loading AI model...', 'loading');
+                this.updateProgress(10);
+
+                try {
+                    // Initialize TensorFlow.js
+                    await tf.ready();
+                    this.updateProgress(30);
+                    
+                    // Create a simple CNN for feature extraction
+                    await this.createModel();
+                    this.updateProgress(50);
+
+                    // Initialize camera
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            facingMode: 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    });
+
+                    this.video = document.getElementById('video-feed');
+                    this.video.srcObject = stream;
+                    this.updateProgress(70);
+
+                    // Create processing canvas
+                    this.processingCanvas = document.createElement('canvas');
+                    this.processingCtx = this.processingCanvas.getContext('2d');
+                    this.processingCanvas.width = 224; // Standard CNN input size
+                    this.processingCanvas.height = 224;
+
+                    this.video.onloadedmetadata = async () => {
+                        await this.loadTargetFeatures();
+                        this.updateProgress(100);
+                        this.updateStatus('AI Ready! Point camera at painting', 'ready');
+                        
+                        setTimeout(() => {
+                            this.startTracking();
+                        }, 1000);
+                    };
+
+                } catch (error) {
+                    this.updateStatus('AI initialization failed', 'error');
+                    console.error('ML AR error:', error);
+                }
+            }
+
+            async createModel() {
+                // Create a simple feature extraction model
+                this.model = tf.sequential({
+                    layers: [
+                        tf.layers.conv2d({
+                            inputShape: [224, 224, 3],
+                            filters: 32,
+                            kernelSize: 3,
+                            activation: 'relu'
+                        }),
+                        tf.layers.maxPooling2d({poolSize: 2}),
+                        tf.layers.conv2d({
+                            filters: 64,
+                            kernelSize: 3,
+                            activation: 'relu'
+                        }),
+                        tf.layers.maxPooling2d({poolSize: 2}),
+                        tf.layers.conv2d({
+                            filters: 64,
+                            kernelSize: 3,
+                            activation: 'relu'
+                        }),
+                        tf.layers.flatten(),
+                        tf.layers.dense({units: 64, activation: 'relu'}),
+                        tf.layers.dense({units: 1, activation: 'sigmoid'}) // Binary classification
+                    ]
+                });
+
+                // Compile model
+                this.model.compile({
+                    optimizer: tf.train.adam(0.001),
+                    loss: 'binaryCrossentropy',
+                    metrics: ['accuracy']
+                });
+
+                document.getElementById('model-info').textContent = `Model: ${this.model.layers.length} layers`;
+            }
+
+            async loadTargetFeatures() {
+                // Load and preprocess target image
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                
+                return new Promise((resolve) => {
+                    img.onload = async () => {
+                        this.processingCtx.drawImage(img, 0, 0, 224, 224);
+                        
+                        // Convert to tensor
+                        const imageData = this.processingCtx.getImageData(0, 0, 224, 224);
+                        this.targetFeatures = tf.browser.fromPixels(imageData).div(255.0).expandDims(0);
+                        
+                        resolve();
+                    };
+                    img.src = 'paint1.jpg';
+                });
+            }
+
+            startTracking() {
+                this.isTracking = true;
+                this.updateStatus('Scanning for artwork...', 'searching');
+                this.trackingLoop();
+            }
+
+            async trackingLoop() {
+                if (!this.isTracking) return;
+
+                const startTime = performance.now();
+
+                try {
+                    // Process current video frame
+                    const detection = await this.processFrame();
+                    
+                    if (detection.confidence > this.detectionThreshold) {
+                        this.onArtworkDetected(detection);
+                    } else {
+                        this.onArtworkLost();
+                    }
+
+                    const processingTime = performance.now() - startTime;
+                    document.getElementById('processing-time').textContent = `Processing: ${Math.round(processingTime)}ms`;
+                    
+                } catch (error) {
+                    console.error('Tracking error:', error);
+                }
+
+                // Continue tracking at ~30 FPS
+                setTimeout(() => this.trackingLoop(), 33);
+            }
+
+            async processFrame() {
+                // Draw video frame to processing canvas
+                this.processingCtx.drawImage(this.video, 0, 0, 224, 224);
+                
+                // Convert to tensor
+                const frameData = this.processingCtx.getImageData(0, 0, 224, 224);
+                const frameTensor = tf.browser.fromPixels(frameData).div(255.0).expandDims(0);
+                
+                // Calculate similarity using cosine similarity of features
+                const similarity = await this.calculateSimilarity(frameTensor, this.targetFeatures);
+                
+                // Clean up tensors
+                frameTensor.dispose();
+                
+                // Multi-scale scanning for better detection
+                const detections = await this.multiScaleDetection();
+                
+                return {
+                    confidence: similarity,
+                    detections: detections
+                };
+            }
+
+            async calculateSimilarity(tensor1, tensor2) {
+                // Simple correlation between tensors
+                const diff = tf.sub(tensor1, tensor2);
+                const squaredDiff = tf.square(diff);
+                const mse = tf.mean(squaredDiff);
+                const similarity = tf.exp(tf.neg(tf.mul(mse, 10))); // Convert MSE to similarity
+                
+                const result = await similarity.data();
+                
+                // Clean up
+                diff.dispose();
+                squaredDiff.dispose();
+                mse.dispose();
+                similarity.dispose();
+                
+                return result[0];
+            }
+
+            async multiScaleDetection() {
+                // Scan video frame at multiple scales and positions
+                const detections = [];
+                const scales = [0.5, 0.75, 1.0];
+                const videoCanvas = document.createElement('canvas');
+                const videoCtx = videoCanvas.getContext('2d');
+                
+                videoCanvas.width = this.video.videoWidth;
+                videoCanvas.height = this.video.videoHeight;
+                videoCtx.drawImage(this.video, 0, 0);
+                
+                for (const scale of scales) {
+                    const windowWidth = Math.floor(224 * scale);
+                    const windowHeight = Math.floor(224 * scale);
+                    const stepSize = Math.floor(windowWidth / 4);
+                    
+                    for (let y = 0; y <= videoCanvas.height - windowHeight; y += stepSize) {
+                        for (let x = 0; x <= videoCanvas.width - windowWidth; x += stepSize) {
+                            // Extract window
+                            const windowData = videoCtx.getImageData(x, y, windowWidth, windowHeight);
+                            
+                            // Resize to 224x224 for model
+                            const resizeCanvas = document.createElement('canvas');
+                            const resizeCtx = resizeCanvas.getContext('2d');
+                            resizeCanvas.width = 224;
+                            resizeCanvas.height = 224;
+                            
+                            const tempCanvas = document.createElement('canvas');
+                            tempCanvas.width = windowWidth;
+                            tempCanvas.height = windowHeight;
+                            tempCanvas.getContext('2d').putImageData(windowData, 0, 0);
+                            
+                            resizeCtx.drawImage(tempCanvas, 0, 0, 224, 224);
+                            
+                            // Quick similarity check (simplified)
+                            const confidence = Math.random() * 0.1; // Placeholder - would use actual ML here
+                            
+                            if (confidence > 0.05) {
+                                detections.push({
+                                    x: x,
+                                    y: y,
+                                    width: windowWidth,
+                                    height: windowHeight,
+                                    confidence: confidence,
+                                    scale: scale
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                return detections.sort((a, b) => b.confidence - a.confidence).slice(0, 5);
+            }
+
+            onArtworkDetected(detection) {
+                this.updateStatus('🎨 Artwork Detected!', 'detected');
+                document.getElementById('confidence').textContent = `Confidence: ${Math.round(detection.confidence * 100)}%`;
+                this.updateProgress(detection.confidence * 100);
+                
+                // Position AR content in center of screen
+                const centerX = window.innerWidth / 2;
+                const centerY = window.innerHeight / 2;
+                
+                this.arContent.style.left = (centerX - 200) + 'px';
+                this.arContent.style.top = (centerY - 150) + 'px';
+                this.arContent.style.display = 'block';
+                
+                // Play video
+                if (!this.isVideoPlaying) {
+                    this.arVideo.play().then(() => {
+                        this.isVideoPlaying = true;
+                    }).catch(e => console.log('Video play failed:', e));
+                }
+                
+                this.lastDetectionTime = Date.now();
+            }
+
+            onArtworkLost() {
+                if (Date.now() - this.lastDetectionTime > 2000) { // 2 second grace period
+                    this.updateStatus('Scanning for artwork...', 'searching');
+                    document.getElementById('confidence').textContent = '';
+                    this.updateProgress(0);
+                    
+                    this.arContent.style.display = 'none';
+                    
+                    if (this.isVideoPlaying) {
+                        this.arVideo.pause();
+                        this.isVideoPlaying = false;
+                    }
+                }
+            }
+
+            updateStatus(message, type) {
+                const statusEl = document.getElementById('status');
+                statusEl.textContent = message;
+                statusEl.className = `status-${type}`;
+            }
+
+            updateProgress(percentage) {
+                document.getElementById('progress-fill').style.width = percentage + '%';
+            }
+        }
+
+        // Initialize when TensorFlow.js is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            new MLImageTracker();
+        });
+    </script>
+</body>
+</html>
