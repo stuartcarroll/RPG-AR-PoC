@@ -336,7 +336,7 @@
                 this.lastFpsTime = Date.now();
                 
                 // Detection parameters
-                this.confidenceThreshold = 0.12;
+                this.confidenceThreshold = 0.3; // Higher threshold to avoid false positives
                 this.skipFrames = 3; // Process every 4th frame for stability
                 this.currentFrame = 0;
                 
@@ -468,11 +468,19 @@
                 let bestMatch = { confidence: 0, x: 0, y: 0, scale: 1 };
                 
                 // Multi-scale detection
-                const scales = [0.8, 1.0, 1.2];
+                const scales = [0.6, 0.8, 1.0, 1.2, 1.4];
                 
                 for (const scale of scales) {
                     const match = this.templateMatch(frameData, scale);
-                    if (match.confidence > bestMatch.confidence) {
+                    
+                    // Require minimum size to avoid tiny false positives
+                    const minScreenSize = 100; // pixels
+                    const screenW = (match.width || 80) * (window.innerWidth / this.canvas.width);
+                    const screenH = (match.height || 60) * (window.innerHeight / this.canvas.height);
+                    
+                    if (match.confidence > bestMatch.confidence && 
+                        screenW > minScreenSize && 
+                        screenH > minScreenSize) {
                         bestMatch = { ...match, scale };
                     }
                 }
@@ -512,7 +520,9 @@
             calculateMatch(frameData, startX, startY, width, height) {
                 let score = 0;
                 let samples = 0;
-                const step = 3;
+                const step = 2; // Finer sampling for better accuracy
+                let colorVariance = 0;
+                let edgeScore = 0;
                 
                 for (let y = 0; y < height; y += step) {
                     for (let x = 0; x < width; x += step) {
@@ -527,20 +537,39 @@
                             const targetIdx = (targetY * 80 + targetX) * 4;
                             
                             if (targetIdx < this.targetImage.data.length) {
-                                // RGB comparison
+                                // Enhanced RGB comparison with weighted channels
                                 let diff = 0;
-                                for (let c = 0; c < 3; c++) {
-                                    diff += Math.abs(frameData.data[frameIdx + c] - this.targetImage.data[targetIdx + c]);
-                                }
+                                const frameR = frameData.data[frameIdx];
+                                const frameG = frameData.data[frameIdx + 1];
+                                const frameB = frameData.data[frameIdx + 2];
+                                const targetR = this.targetImage.data[targetIdx];
+                                const targetG = this.targetImage.data[targetIdx + 1];
+                                const targetB = this.targetImage.data[targetIdx + 2];
                                 
-                                score += Math.max(0, 255 - diff / 3) / 255;
+                                // Weighted RGB difference (human eye sensitivity)
+                                diff = Math.abs(frameR - targetR) * 0.3 + 
+                                       Math.abs(frameG - targetG) * 0.59 + 
+                                       Math.abs(frameB - targetB) * 0.11;
+                                
+                                const pixelScore = Math.max(0, 255 - diff) / 255;
+                                score += pixelScore;
+                                
+                                // Track color variance for uniqueness
+                                const intensity = (frameR + frameG + frameB) / 3;
+                                colorVariance += Math.abs(intensity - 128); // Distance from gray
+                                
                                 samples++;
                             }
                         }
                     }
                 }
                 
-                return samples > 0 ? score / samples : 0;
+                if (samples === 0) return 0;
+                
+                const baseScore = score / samples;
+                const varianceBonus = Math.min(0.3, colorVariance / (samples * 100)); // Bonus for colorful images
+                
+                return Math.min(1, baseScore + varianceBonus);
             }
 
             updateDetectionHistory(detection) {
