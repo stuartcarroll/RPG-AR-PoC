@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPG AR Experience</title>
-    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1c2407b26c61958baa93967b5412487cd94b290b/dist/aframe-master.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <title>RPG AR Experience - Advanced Tracking</title>
     <style>
-        body {
+        * {
             margin: 0;
-            font-family: Arial, sans-serif;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
             background: #000;
             color: #fff;
             overflow: hidden;
@@ -29,7 +32,6 @@
             z-index: 1000;
             text-align: center;
             padding: 20px;
-            box-sizing: border-box;
         }
 
         #start-button {
@@ -42,107 +44,384 @@
             cursor: pointer;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             transition: all 0.3s ease;
-            max-width: 90%;
-            word-wrap: break-word;
         }
 
-        #start-button:hover {
-            background: #ff5252;
-            transform: translateY(-2px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
-        }
-
-        #ar-scene {
-            display: none;
-        }
-
-        #loading {
+        #ar-container {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 999;
-            text-align: center;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             display: none;
         }
 
-        .loading-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #ff6b6b;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 2s linear infinite;
-            margin: 0 auto 20px;
+        #video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        #ar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
         }
 
-        @media (max-width: 768px) {
-            #start-button {
-                font-size: 16px;
-                padding: 15px 25px;
-            }
+        #ar-content {
+            position: absolute;
+            display: none;
+            transform-origin: center center;
+            transition: all 0.3s ease;
+        }
+
+        #ar-video {
+            width: 300px;
+            height: 200px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+
+        #detection-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            max-width: 250px;
+        }
+
+        .status-good { color: #00ff00; }
+        .status-searching { color: #ffaa00; }
+        .status-error { color: #ff0000; }
+
+        #target-preview {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 120px;
+            height: 80px;
+            border: 2px solid #fff;
+            border-radius: 5px;
+            object-fit: cover;
+        }
+
+        .detection-overlay {
+            position: absolute;
+            border: 3px solid #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+            border-radius: 5px;
+            opacity: 0.8;
         }
     </style>
 </head>
 <body>
     <div id="start-screen">
-        <h1>RPG AR Experience</h1>
-        <p>Point your camera at "The Adoration of the Shepherds" painting to reveal hidden content</p>
+        <h1>🎭 RPG AR Experience</h1>
+        <p>Advanced Image Recognition</p>
+        <p>Point your camera at "The Adoration of the Shepherds" painting</p>
         <button id="start-button">The Adoration of the Shepherds, Guido Reni</button>
     </div>
 
-    <div id="loading">
-        <div class="loading-spinner"></div>
-        <p>Loading AR Experience...</p>
-    </div>
-
-    <div id="ar-scene">
-        <a-scene
-            vr-mode-ui="enabled: false;"
-            renderer="logarithmicDepthBuffer: true;"
-            embedded
-            arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: true;">
-            
-            <a-nft
-                type="nft"
-                url="markers/paint1"
-                smooth="true"
-                smoothCount="10"
-                smoothTolerance=".01"
-                smoothThreshold="5">
-                
-                <a-video
-                    src="#ar-video"
-                    position="0 0 0"
-                    rotation="-90 0 0"
-                    width="2"
-                    height="1.5"
-                    opacity="0.9">
-                </a-video>
-            </a-nft>
-
-            <a-entity camera></a-entity>
-
-            <a-assets>
-                <video
-                    id="ar-video"
-                    src="vid1.mp4"
-                    preload="auto"
-                    loop="true"
-                    muted="true"
-                    crossorigin="anonymous"
-                    webkit-playsinline
-                    playsinline>
+    <div id="ar-container">
+        <video id="video-feed" autoplay playsinline muted></video>
+        
+        <div id="ar-overlay">
+            <div id="ar-content">
+                <video id="ar-video" loop muted playsinline preload="auto">
+                    <source src="vid1.mp4" type="video/mp4">
                 </video>
-            </a-assets>
-        </a-scene>
+            </div>
+        </div>
+
+        <div id="detection-info">
+            <div id="status" class="status-searching">Initializing camera...</div>
+            <div id="confidence"></div>
+            <div id="fps"></div>
+        </div>
+
+        <img id="target-preview" src="paint1.jpg" alt="Search for this image">
     </div>
 
-    <script src="js/ar-app.js"></script>
+    <script>
+        class AdvancedImageTracker {
+            constructor() {
+                this.video = null;
+                this.canvas = null;
+                this.ctx = null;
+                this.isTracking = false;
+                this.targetImage = null;
+                this.detectionHistory = [];
+                this.confidenceThreshold = 0.15;
+                this.frameCount = 0;
+                this.lastFpsTime = Date.now();
+                this.arContent = null;
+                this.arVideo = null;
+                this.isVideoPlaying = false;
+                
+                // Performance settings
+                this.skipFrames = 2; // Process every 3rd frame
+                this.currentFrame = 0;
+                
+                this.init();
+            }
+
+            init() {
+                document.getElementById('start-button').addEventListener('click', () => {
+                    this.startAR();
+                });
+                
+                this.arContent = document.getElementById('ar-content');
+                this.arVideo = document.getElementById('ar-video');
+            }
+
+            async startAR() {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('ar-container').style.display = 'block';
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            facingMode: 'environment',
+                            width: { ideal: 1280, max: 1920 },
+                            height: { ideal: 720, max: 1080 }
+                        }
+                    });
+
+                    this.video = document.getElementById('video-feed');
+                    this.video.srcObject = stream;
+
+                    // Create processing canvas
+                    this.canvas = document.createElement('canvas');
+                    this.ctx = this.canvas.getContext('2d');
+
+                    this.video.onloadedmetadata = () => {
+                        // Set canvas size for processing (smaller for performance)
+                        this.canvas.width = 320;
+                        this.canvas.height = 240;
+                        this.loadTargetImage();
+                    };
+
+                } catch (error) {
+                    this.updateStatus('Camera access denied', 'error');
+                    console.error('Camera error:', error);
+                }
+            }
+
+            loadTargetImage() {
+                this.updateStatus('Loading target image...', 'searching');
+                
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    // Create target canvas
+                    const targetCanvas = document.createElement('canvas');
+                    const targetCtx = targetCanvas.getContext('2d');
+                    
+                    // Standardize target size
+                    targetCanvas.width = 160;
+                    targetCanvas.height = 120;
+                    targetCtx.drawImage(img, 0, 0, 160, 120);
+                    
+                    this.targetImage = targetCtx.getImageData(0, 0, 160, 120);
+                    this.updateStatus('Ready! Point camera at the painting', 'searching');
+                    this.startTracking();
+                };
+                img.src = 'paint1.jpg';
+            }
+
+            startTracking() {
+                this.isTracking = true;
+                this.trackLoop();
+            }
+
+            trackLoop() {
+                if (!this.isTracking) return;
+
+                this.currentFrame++;
+                if (this.currentFrame % this.skipFrames !== 0) {
+                    requestAnimationFrame(() => this.trackLoop());
+                    return;
+                }
+
+                try {
+                    // Draw video frame to processing canvas
+                    this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+                    const frameData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                    
+                    // Multi-scale template matching
+                    const detection = this.multiScaleMatch(frameData);
+                    
+                    // Smooth detection history
+                    this.detectionHistory.push(detection);
+                    if (this.detectionHistory.length > 5) {
+                        this.detectionHistory.shift();
+                    }
+                    
+                    const avgConfidence = this.detectionHistory.reduce((sum, d) => sum + d.confidence, 0) / this.detectionHistory.length;
+                    
+                    if (avgConfidence > this.confidenceThreshold) {
+                        this.onTargetDetected(detection, avgConfidence);
+                    } else {
+                        this.onTargetLost();
+                    }
+                    
+                    this.updateFPS();
+                    
+                } catch (error) {
+                    console.error('Tracking error:', error);
+                }
+
+                requestAnimationFrame(() => this.trackLoop());
+            }
+
+            multiScaleMatch(frameData) {
+                let bestMatch = { confidence: 0, x: 0, y: 0, scale: 1 };
+                
+                // Try different scales
+                const scales = [0.5, 0.75, 1.0, 1.25];
+                
+                for (const scale of scales) {
+                    const match = this.templateMatch(frameData, scale);
+                    if (match.confidence > bestMatch.confidence) {
+                        bestMatch = { ...match, scale };
+                    }
+                }
+                
+                return bestMatch;
+            }
+
+            templateMatch(frameData, scale = 1.0) {
+                const targetWidth = Math.floor(160 * scale);
+                const targetHeight = Math.floor(120 * scale);
+                const stepSize = Math.max(5, Math.floor(10 / scale));
+                
+                let bestScore = 0;
+                let bestX = 0;
+                let bestY = 0;
+                
+                // Scan frame with sliding window
+                for (let y = 0; y <= frameData.height - targetHeight; y += stepSize) {
+                    for (let x = 0; x <= frameData.width - targetWidth; x += stepSize) {
+                        const score = this.calculateMatchScore(frameData, x, y, targetWidth, targetHeight);
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestX = x;
+                            bestY = y;
+                        }
+                    }
+                }
+                
+                return {
+                    confidence: bestScore,
+                    x: bestX,
+                    y: bestY,
+                    width: targetWidth,
+                    height: targetHeight
+                };
+            }
+
+            calculateMatchScore(frameData, startX, startY, width, height) {
+                let score = 0;
+                let samples = 0;
+                const sampleStep = 4; // Sample every 4th pixel for performance
+                
+                for (let y = 0; y < height; y += sampleStep) {
+                    for (let x = 0; x < width; x += sampleStep) {
+                        const frameX = startX + x;
+                        const frameY = startY + y;
+                        
+                        if (frameX < frameData.width && frameY < frameData.height) {
+                            const frameIdx = (frameY * frameData.width + frameX) * 4;
+                            
+                            // Scale coordinates for target image
+                            const targetX = Math.floor((x / width) * 160);
+                            const targetY = Math.floor((y / height) * 120);
+                            const targetIdx = (targetY * 160 + targetX) * 4;
+                            
+                            if (targetIdx < this.targetImage.data.length) {
+                                // Compare RGB values
+                                const frameBrightness = (frameData.data[frameIdx] + frameData.data[frameIdx + 1] + frameData.data[frameIdx + 2]) / 3;
+                                const targetBrightness = (this.targetImage.data[targetIdx] + this.targetImage.data[targetIdx + 1] + this.targetImage.data[targetIdx + 2]) / 3;
+                                
+                                // Normalized correlation
+                                const diff = Math.abs(frameBrightness - targetBrightness);
+                                score += Math.max(0, 255 - diff) / 255;
+                                samples++;
+                            }
+                        }
+                    }
+                }
+                
+                return samples > 0 ? score / samples : 0;
+            }
+
+            onTargetDetected(detection, confidence) {
+                this.updateStatus(`🎯 Image detected!`, 'good');
+                document.getElementById('confidence').textContent = `Confidence: ${Math.round(confidence * 100)}%`;
+                
+                // Calculate position on screen
+                const scaleX = window.innerWidth / this.canvas.width;
+                const scaleY = window.innerHeight / this.canvas.height;
+                
+                const centerX = (detection.x + detection.width / 2) * scaleX;
+                const centerY = (detection.y + detection.height / 2) * scaleY;
+                
+                // Position AR content
+                this.arContent.style.left = (centerX - 150) + 'px';
+                this.arContent.style.top = (centerY - 100) + 'px';
+                this.arContent.style.display = 'block';
+                
+                // Scale based on detection size
+                const scale = Math.min(detection.scale * 1.5, 2.0);
+                this.arContent.style.transform = `scale(${scale})`;
+                
+                // Play video
+                if (!this.isVideoPlaying) {
+                    this.arVideo.play().then(() => {
+                        this.isVideoPlaying = true;
+                    }).catch(e => console.log('Video play failed:', e));
+                }
+            }
+
+            onTargetLost() {
+                this.updateStatus('📱 Searching for painting...', 'searching');
+                document.getElementById('confidence').textContent = '';
+                
+                this.arContent.style.display = 'none';
+                
+                if (this.isVideoPlaying) {
+                    this.arVideo.pause();
+                    this.isVideoPlaying = false;
+                }
+            }
+
+            updateStatus(message, type) {
+                const statusEl = document.getElementById('status');
+                statusEl.textContent = message;
+                statusEl.className = `status-${type}`;
+            }
+
+            updateFPS() {
+                this.frameCount++;
+                const now = Date.now();
+                if (now - this.lastFpsTime >= 1000) {
+                    const fps = Math.round(this.frameCount * 1000 / (now - this.lastFpsTime));
+                    document.getElementById('fps').textContent = `FPS: ${fps}`;
+                    this.frameCount = 0;
+                    this.lastFpsTime = now;
+                }
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new AdvancedImageTracker();
+        });
+    </script>
 </body>
 </html>
