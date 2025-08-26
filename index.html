@@ -92,14 +92,8 @@
 <body>
     <div id="start-screen">
         <h1>RPG AR Experience</h1>
-        <p>Point your camera at the AR marker below to reveal hidden content</p>
-        <div style="margin: 20px 0;">
-            <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" 
-                 alt="Hiro AR Marker" 
-                 style="max-width: 200px; border: 2px solid #fff; border-radius: 10px;">
-        </div>
-        <p style="font-size: 14px; opacity: 0.8;">Print this marker or display it on another screen</p>
-        <button id="start-button">Start AR Experience</button>
+        <p>Point your camera at "The Adoration of the Shepherds" painting to reveal hidden content</p>
+        <button id="start-button">The Adoration of the Shepherds, Guido Reni</button>
     </div>
 
     <div id="loading">
@@ -114,8 +108,9 @@
             embedded
             arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;">
             
-            <a-marker
-                preset="hiro"
+            <a-nft
+                type="nft"
+                url="markers/paint1"
                 smooth="true"
                 smoothCount="10"
                 smoothTolerance=".01"
@@ -129,7 +124,7 @@
                     height="1.5"
                     opacity="0.9">
                 </a-video>
-            </a-marker>
+            </a-nft>
 
             <a-entity camera></a-entity>
 

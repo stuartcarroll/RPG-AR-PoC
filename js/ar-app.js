@@ -16,13 +16,13 @@ class ARApp {
         startButton.addEventListener('click', () => this.startAR());
 
         // Handle AR events
-        document.addEventListener('markerFound', (e) => {
-            console.log('Marker found');
+        document.addEventListener('arjs-nft-loaded', (e) => {
+            console.log('NFT marker loaded and tracking started');
             this.playVideo();
         });
 
-        document.addEventListener('markerLost', (e) => {
-            console.log('Marker lost');
+        document.addEventListener('arjs-nft-lost', (e) => {
+            console.log('NFT marker lost');
             this.pauseVideo();
         });
     }
