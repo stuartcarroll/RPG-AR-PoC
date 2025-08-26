@@ -64,18 +64,49 @@
     </div>
     
     <script>
+        let qrImageUrl = '';
+        
         function generateQR() {
             const url = 'https://rpgar.stuc.dev';
-            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
+            qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
             
             const qrDiv = document.getElementById('qrcode');
             qrDiv.innerHTML = `
                 <h3>QR Code Generated</h3>
-                <img src="${qrApiUrl}" alt="QR Code for ${url}" class="qr-image">
+                <img src="${qrImageUrl}" alt="QR Code for ${url}" class="qr-image" id="qr-img">
                 <br>
-                <a href="${qrApiUrl}" download="rpgar-qr-code.png" class="download-btn">Download QR Code</a>
-                <p>Right-click the image above and select "Save Image As..." to download</p>
+                <button class="download-btn" onclick="downloadQR()">Download QR Code</button>
+                <p><strong>To save manually:</strong> Right-click the QR code image above and select "Save Image As..."</p>
+                <p><strong>Direct link:</strong> <a href="${qrImageUrl}" target="_blank">Open QR Code in New Tab</a></p>
             `;
+        }
+        
+        async function downloadQR() {
+            try {
+                if (!qrImageUrl) {
+                    alert('Please generate a QR code first');
+                    return;
+                }
+                
+                // Fetch the image as blob
+                const response = await fetch(qrImageUrl);
+                const blob = await response.blob();
+                
+                // Create download link
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = 'rpgar-qr-code.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Clean up
+                window.URL.revokeObjectURL(downloadUrl);
+            } catch (error) {
+                alert('Download failed. Please right-click the QR code image and select "Save Image As..." instead.');
+                console.error('Download error:', error);
+            }
         }
     </script>
 </body>
