@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Generator</title>
+    <title>QR Code for RPG AR Experience</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,103 +11,89 @@
             margin: 0 auto;
             padding: 20px;
             text-align: center;
+            background: #f8f9fa;
         }
-        #qrcode {
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .qr-code {
             margin: 20px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            display: inline-block;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         .qr-image {
             max-width: 300px;
-            border: 2px solid #333;
-            border-radius: 10px;
+            width: 100%;
+            height: auto;
         }
-        .download-btn, .generate-btn {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 10px;
-        }
-        .download-btn:hover, .generate-btn:hover {
-            background: #0056b3;
-        }
-        .url-section {
-            background: #f8f9fa;
+        .url-display {
+            background: #e9ecef;
             padding: 15px;
             border-radius: 5px;
             margin: 20px 0;
-            color: #333;
+            font-family: monospace;
+            font-size: 18px;
+            color: #495057;
+            border-left: 4px solid #007bff;
+        }
+        .instructions {
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+            line-height: 1.5;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 20px;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>QR Code for RPG AR Experience</h1>
-    <p>Scan this QR code to access the AR experience at <strong>https://rpgar.stuc.dev</strong></p>
-    
-    <div class="url-section">
-        <h3>Generate QR Code using Online Service</h3>
-        <p>Click the button below to generate a QR code using Google's Chart API:</p>
-        <button class="generate-btn" onclick="generateQR()">Generate QR Code</button>
-    </div>
-    
-    <div id="qrcode"></div>
-    
-    <div class="url-section">
-        <h3>Alternative QR Code Generators</h3>
-        <p>You can also use these online tools to generate a QR code for <strong>https://rpgar.stuc.dev</strong>:</p>
-        <ul style="text-align: left; display: inline-block;">
-            <li><a href="https://qr-code-generator.com/" target="_blank">QR Code Generator</a></li>
-            <li><a href="https://www.qr-code-generator.org/" target="_blank">QR Code Generator.org</a></li>
-            <li><a href="https://www.the-qrcode-generator.com/" target="_blank">The QR Code Generator</a></li>
-        </ul>
-    </div>
-    
-    <script>
-        let qrImageUrl = '';
+    <div class="container">
+        <h1>QR Code for RPG AR Experience</h1>
+        <p class="subtitle">Scan this QR code to access the AR experience</p>
         
-        function generateQR() {
-            const url = 'https://rpgar.stuc.dev';
-            qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
+        <div class="url-display">
+            https://rpgar.stuc.dev
+        </div>
+        
+        <div class="qr-code">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https%3A//rpgar.stuc.dev" 
+                 alt="QR Code for https://rpgar.stuc.dev" 
+                 class="qr-image">
+        </div>
+        
+        <div class="instructions">
+            <p><strong>How to use:</strong></p>
+            <ol style="text-align: left; display: inline-block;">
+                <li>Open your mobile device's camera app</li>
+                <li>Point the camera at the QR code above</li>
+                <li>Tap the notification that appears to open the website</li>
+                <li>Follow the on-screen instructions to start the AR experience</li>
+            </ol>
             
-            const qrDiv = document.getElementById('qrcode');
-            qrDiv.innerHTML = `
-                <h3>QR Code Generated</h3>
-                <img src="${qrImageUrl}" alt="QR Code for ${url}" class="qr-image" id="qr-img">
-                <br>
-                <button class="download-btn" onclick="downloadQR()">Download QR Code</button>
-                <p><strong>To save manually:</strong> Right-click the QR code image above and select "Save Image As..."</p>
-                <p><strong>Direct link:</strong> <a href="${qrImageUrl}" target="_blank">Open QR Code in New Tab</a></p>
-            `;
-        }
-        
-        async function downloadQR() {
-            try {
-                if (!qrImageUrl) {
-                    alert('Please generate a QR code first');
-                    return;
-                }
-                
-                // Fetch the image as blob
-                const response = await fetch(qrImageUrl);
-                const blob = await response.blob();
-                
-                // Create download link
-                const downloadUrl = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = downloadUrl;
-                link.download = 'rpgar-qr-code.png';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                // Clean up
-                window.URL.revokeObjectURL(downloadUrl);
-            } catch (error) {
-                alert('Download failed. Please right-click the QR code image and select "Save Image As..." instead.');
-                console.error('Download error:', error);
-            }
-        }
-    </script>
+            <p><strong>To save this QR code:</strong><br>
+            Right-click the QR code image and select "Save Image As..."</p>
+        </div>
+    </div>
 </body>
 </html>
