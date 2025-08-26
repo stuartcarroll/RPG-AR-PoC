@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: white;
+        }
+        .qr-image {
+            max-width: 90vw;
+            max-height: 90vh;
+            width: 400px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https%3A//rpgar.stuc.dev" 
+         alt="QR Code for https://rpgar.stuc.dev" 
+         class="qr-image">
+</body>
+</html>
