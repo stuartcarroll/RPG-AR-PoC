@@ -34,27 +34,50 @@
     <button class="download-btn" onclick="downloadQR()">Download QR Code</button>
     
     <script>
-        // Generate QR code
-        const canvas = document.createElement('canvas');
-        QRCode.toCanvas(canvas, 'https://rpgar.stuc.dev', {
-            width: 300,
-            margin: 2,
-            color: {
-                dark: '#000000',
-                light: '#FFFFFF'
-            }
-        }, function (error) {
-            if (error) console.error(error);
-            console.log('QR code generated successfully!');
+        let canvas;
+        
+        // Wait for DOM and library to load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add small delay to ensure QRCode library is loaded
+            setTimeout(() => {
+                generateQR();
+            }, 100);
         });
         
-        document.getElementById('qrcode').appendChild(canvas);
+        function generateQR() {
+            // Generate QR code
+            canvas = document.createElement('canvas');
+            
+            if (typeof QRCode === 'undefined') {
+                document.getElementById('qrcode').innerHTML = '<p style="color: red;">Error: QR Code library failed to load</p>';
+                return;
+            }
+            
+            QRCode.toCanvas(canvas, 'https://rpgar.stuc.dev', {
+                width: 300,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            }, function (error) {
+                if (error) {
+                    console.error(error);
+                    document.getElementById('qrcode').innerHTML = '<p style="color: red;">Error generating QR code</p>';
+                } else {
+                    console.log('QR code generated successfully!');
+                    document.getElementById('qrcode').appendChild(canvas);
+                }
+            });
+        }
         
         function downloadQR() {
-            const link = document.createElement('a');
-            link.download = 'rpgar-qr-code.png';
-            link.href = canvas.toDataURL();
-            link.click();
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = 'rpgar-qr-code.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            }
         }
     </script>
 </body>
