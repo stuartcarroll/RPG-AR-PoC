@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        #qrcode {
+            margin: 20px 0;
+        }
+        .download-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>QR Code for RPG AR Experience</h1>
+    <p>Scan this QR code to access the AR experience at https://rpgar.stuc.dev</p>
+    <div id="qrcode"></div>
+    <button class="download-btn" onclick="downloadQR()">Download QR Code</button>
+    
+    <script>
+        // Generate QR code
+        const canvas = document.createElement('canvas');
+        QRCode.toCanvas(canvas, 'https://rpgar.stuc.dev', {
+            width: 300,
+            margin: 2,
+            color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+            }
+        }, function (error) {
+            if (error) console.error(error);
+            console.log('QR code generated successfully!');
+        });
+        
+        document.getElementById('qrcode').appendChild(canvas);
+        
+        function downloadQR() {
+            const link = document.createElement('a');
+            link.download = 'rpgar-qr-code.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+    </script>
+</body>
+</html>
