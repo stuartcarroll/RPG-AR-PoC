@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Debug Test</title>
+    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1c2407b26c61958baa93967b5412487cd94b290b/dist/aframe-master.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        #debug {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            font-size: 12px;
+            max-width: 300px;
+        }
+        #test-image {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 200px;
+            border: 2px solid #fff;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="debug">
+        <div>AR.js Debug Mode</div>
+        <div id="status">Initializing...</div>
+        <div id="events"></div>
+    </div>
+
+    <img id="test-image" src="paint1_enhanced.jpg" alt="Test this enhanced image">
+
+    <a-scene
+        vr-mode-ui="enabled: false;"
+        renderer="logarithmicDepthBuffer: true;"
+        embedded
+        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: true;">
+        
+        <a-nft
+            type="nft"
+            url="markers/paint1"
+            smooth="true"
+            smoothCount="10"
+            smoothTolerance=".01"
+            smoothThreshold="5">
+            
+            <a-box 
+                position="0 0.5 0" 
+                material="color: red;" 
+                width="1" 
+                height="1" 
+                depth="1"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 10000">
+            </a-box>
+            
+            <a-text 
+                value="IMAGE DETECTED!" 
+                position="0 1 0" 
+                align="center" 
+                color="green">
+            </a-text>
+            
+        </a-nft>
+
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+        const debug = document.getElementById('debug');
+        const status = document.getElementById('status');
+        const events = document.getElementById('events');
+        
+        let eventLog = [];
+        
+        function addEvent(msg) {
+            eventLog.push(new Date().toLocaleTimeString() + ': ' + msg);
+            if (eventLog.length > 5) eventLog.shift();
+            events.innerHTML = eventLog.join('<br>');
+        }
+
+        // Monitor all AR events
+        document.addEventListener('arjs-nft-loaded', (e) => {
+            addEvent('✅ NFT LOADED!');
+            status.textContent = 'Image detected!';
+            status.style.color = 'green';
+        });
+
+        document.addEventListener('arjs-nft-lost', (e) => {
+            addEvent('❌ NFT Lost');
+            status.textContent = 'Searching for image...';
+            status.style.color = 'orange';
+        });
+
+        document.addEventListener('camera-init', (e) => {
+            addEvent('📷 Camera ready');
+            status.textContent = 'Camera ready - point at image';
+        });
+
+        document.addEventListener('camera-error', (e) => {
+            addEvent('❌ Camera error');
+            status.textContent = 'Camera error!';
+            status.style.color = 'red';
+        });
+
+        // Check NFT data loading
+        fetch('markers/paint1.fset')
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Failed to load marker');
+                }
+            })
+            .then(data => {
+                addEvent(`📊 Marker loaded: ${data.features.length} features`);
+            })
+            .catch(error => {
+                addEvent('❌ Marker load failed');
+                console.error('Marker load error:', error);
+            });
+    </script>
+</body>
+</html>

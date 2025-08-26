@@ -15,15 +15,36 @@ class ARApp {
         const startButton = document.getElementById('start-button');
         startButton.addEventListener('click', () => this.startAR());
 
-        // Handle AR events
+        // Handle AR events with more debug info
         document.addEventListener('arjs-nft-loaded', (e) => {
-            console.log('NFT marker loaded and tracking started');
+            console.log('NFT marker loaded and tracking started', e);
+            alert('Image detected! Video should be playing.');
             this.playVideo();
         });
 
         document.addEventListener('arjs-nft-lost', (e) => {
-            console.log('NFT marker lost');
+            console.log('NFT marker lost', e);
             this.pauseVideo();
+        });
+
+        // Add more debug events
+        document.addEventListener('camera-init', (e) => {
+            console.log('Camera initialized', e);
+        });
+
+        document.addEventListener('camera-error', (e) => {
+            console.log('Camera error', e);
+            alert('Camera error: ' + e.error);
+        });
+
+        // Check if AR.js is loading properly
+        window.addEventListener('arjs-video-loaded', (e) => {
+            console.log('AR.js video loaded', e);
+        });
+
+        // Monitor NFT loading
+        document.addEventListener('getNFTData', (e) => {
+            console.log('NFT data request', e);
         });
     }
 
