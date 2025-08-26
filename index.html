@@ -3,93 +3,122 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AR Muralist Portfolio</title>
+    <title>RPG AR Experience</title>
     <link rel="stylesheet" href="css/ar-styles.css">
     
-    <!-- AR.js -->
+    <!-- AR.js NFT -->
     <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1c2407b26c61958baa93967b5412487cd94b290b/dist/aframe-master.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
 </head>
 
 <body>
-    <!-- AR Scene -->
-    <a-scene
-        vr-mode-ui="enabled: false"
-        renderer="logarithmicDepthBuffer: true;"
-        embedded
-        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
-    >
-        <!-- Marker -->
-        <a-marker preset="hiro" raycaster="objects: .clickable" emitevents="true" cursor="fuse: false;">
-            <!-- Artwork 1: 3D Box representing a mural -->
-            <a-box id="artwork1" 
-                   position="0 0.5 0" 
-                   scale="1 1 0.1"
-                   material="color: #FF6B35; transparent: true; opacity: 0.8"
-                   animation="property: rotation; to: 0 360 0; loop: true; dur: 10000"
-                   visible="true">
-                <a-text value="Mural 1\nUrban Dreams" 
-                        position="0 0 0.06" 
-                        align="center" 
-                        color="white" 
-                        scale="0.5 0.5 0.5"></a-text>
-            </a-box>
-
-            <!-- Artwork 2: 3D Cylinder representing a column mural -->
-            <a-cylinder id="artwork2" 
-                       position="0 0.5 0" 
-                       radius="0.5" 
-                       height="1"
-                       material="color: #F7931E; transparent: true; opacity: 0.8"
-                       animation="property: rotation; to: 0 360 0; loop: true; dur: 8000"
-                       visible="false">
-                <a-text value="Mural 2\nNature's Call" 
-                        position="0 0 0.6" 
-                        align="center" 
-                        color="white" 
-                        scale="0.5 0.5 0.5"></a-text>
-            </a-cylinder>
-
-            <!-- Artwork 3: 3D Sphere representing a dome mural -->
-            <a-sphere id="artwork3" 
-                     position="0 0.5 0" 
-                     radius="0.5"
-                     material="color: #FFD23F; transparent: true; opacity: 0.8"
-                     animation="property: rotation; to: 360 0 0; loop: true; dur: 12000"
-                     visible="false">
-                <a-text value="Mural 3\nCosmic Journey" 
-                        position="0 0.6 0" 
-                        align="center" 
-                        color="black" 
-                        scale="0.5 0.5 0.5"></a-text>
-            </a-sphere>
-
-            <!-- Light -->
-            <a-light type="ambient" color="white" intensity="0.5"></a-light>
-        </a-marker>
-
-        <!-- Camera -->
-        <a-entity camera></a-entity>
-    </a-scene>
-
-    <!-- UI Controls -->
-    <div id="ar-controls">
-        <div id="artwork-buttons">
-            <button id="btn-artwork1" class="artwork-btn active" data-artwork="artwork1">Mural 1</button>
-            <button id="btn-artwork2" class="artwork-btn" data-artwork="artwork2">Mural 2</button>
-            <button id="btn-artwork3" class="artwork-btn" data-artwork="artwork3">Mural 3</button>
-        </div>
-        
-        <div id="info-panel">
-            <p>Point your camera at the Hiro marker to view artworks in AR</p>
-            <div id="marker-status">Searching for marker...</div>
+    <!-- Landing Page -->
+    <div id="landing-page">
+        <div class="landing-container">
+            <h1>RPG AR Experience</h1>
+            <p>Experience immersive AR video overlays on real-world surfaces</p>
+            
+            <div class="painting-selection">
+                <button id="paint1-btn" class="paint-btn">
+                    <div class="paint-icon">🎨</div>
+                    <div class="paint-title">Paint1</div>
+                    <div class="paint-description">Interactive AR Video Experience</div>
+                </button>
+            </div>
+            
+            <div class="instructions">
+                <h3>How it works:</h3>
+                <ol>
+                    <li>Tap "Paint1" to start AR experience</li>
+                    <li>Allow camera access when prompted</li>
+                    <li>Point camera at the target image/wall</li>
+                    <li>Watch the video overlay appear!</li>
+                </ol>
+            </div>
         </div>
     </div>
 
+    <!-- AR Scene (hidden by default) -->
+    <div id="ar-container" style="display: none;">
+        <a-scene
+            vr-mode-ui="enabled: false"
+            renderer="logarithmicDepthBuffer: true;"
+            embedded
+            arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        >
+            <!-- NFT Marker for Image Tracking -->
+            <a-nft
+                type="nft"
+                url="https://raw.githack.com/AR-js-org/AR.js/master/aframe/examples/image-tracking/nft/trex/trex-image/trex"
+                smooth="true"
+                smoothCount="10"
+                smoothTolerance=".01"
+                smoothThreshold="5"
+            >
+                <!-- Video Overlay -->
+                <a-video 
+                    id="video-overlay"
+                    src="#paint1-video"
+                    position="0 0 0"
+                    rotation="-90 0 0"
+                    scale="2 2 2"
+                    material="transparent: true; opacity: 0.9"
+                    animation="property: rotation; to: -90 360 0; loop: true; dur: 30000"
+                ></a-video>
+                
+                <!-- Backup 3D Content -->
+                <a-box 
+                    id="backup-content"
+                    position="0 0.5 0" 
+                    scale="1.5 1.5 0.1"
+                    material="color: #FF6B35; transparent: true; opacity: 0.8"
+                    animation="property: rotation; to: 0 360 0; loop: true; dur: 10000"
+                    visible="false"
+                >
+                    <a-text 
+                        value="Paint1\nAR Experience" 
+                        position="0 0 0.06" 
+                        align="center" 
+                        color="white" 
+                        scale="0.8 0.8 0.8"
+                    ></a-text>
+                </a-box>
+            </a-nft>
+
+            <!-- Camera -->
+            <a-entity camera></a-entity>
+        </a-scene>
+
+        <!-- AR Controls -->
+        <div id="ar-controls">
+            <div id="back-button">
+                <button id="back-btn" class="control-btn">← Back</button>
+            </div>
+            
+            <div id="ar-info-panel">
+                <div id="tracking-status">Searching for target image...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Assets -->
+    <a-assets>
+        <video id="paint1-video" 
+               src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" 
+               preload="auto" 
+               loop="true" 
+               crossorigin="anonymous"
+               playsinline
+               webkit-playsinline
+               autoplay="false"
+               muted="true">
+        </video>
+    </a-assets>
+
     <!-- Loading indicator -->
-    <div id="loading">
-        <div class="loading-text">Loading AR Experience...</div>
+    <div id="loading" style="display: none;">
+        <div class="loading-text">Starting AR Experience...</div>
     </div>
 
     <script src="js/ar-handler.js"></script>
