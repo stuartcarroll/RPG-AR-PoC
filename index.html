@@ -199,7 +199,7 @@
         #ar-content {
             position: absolute;
             display: none;
-            transition: all 0.1s ease-out;
+            transition: all 0.3s ease-out;
             transform-origin: center center;
         }
 
@@ -214,42 +214,37 @@
 
         #detection-box {
             position: absolute;
-            border: 3px solid #00ff00;
+            border: 2px solid #00ff00;
             border-radius: 8px;
-            background: rgba(0, 255, 0, 0.1);
+            background: rgba(0, 255, 0, 0.05);
             display: none;
-            transition: all 0.1s ease-out;
-            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+            transition: all 0.3s ease-out;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
         }
 
         #status {
             position: absolute;
             top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.9);
-            padding: 15px;
-            border-radius: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 8px 16px;
+            border-radius: 20px;
             font-size: 14px;
-            min-width: 200px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        #confidence, #position, #fps {
+            display: none;
         }
 
         #debug-canvas {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            border: 1px solid #fff;
-            width: 160px;
-            height: 120px;
-            opacity: 0.8;
+            display: none;
         }
 
         #target-img {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 120px;
-            border: 2px solid #fff;
-            border-radius: 5px;
+            display: none;
         }
 
         .detected { color: #00ff00; }
@@ -258,23 +253,7 @@
         .error { color: #ff0000; }
 
         #controls {
-            position: absolute;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-        }
-
-        #test-button {
-            background: #00ff00;
-            color: #000;
-            border: none;
-            padding: 12px 24px;
-            font-size: 14px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: bold;
-            opacity: 0.8;
+            display: none;
         }
     </style>
 </head>
@@ -349,7 +328,7 @@
                 this.targetImage = null;
                 this.lastDetection = null;
                 this.detectionHistory = [];
-                this.smoothingFactor = 0.7;
+                this.smoothingFactor = 0.9;
                 
                 // Performance tracking
                 this.frameCount = 0;
@@ -357,7 +336,7 @@
                 
                 // Detection parameters
                 this.confidenceThreshold = 0.12;
-                this.skipFrames = 1; // Process every 2nd frame
+                this.skipFrames = 3; // Process every 4th frame for stability
                 this.currentFrame = 0;
                 
                 this.init();
@@ -565,7 +544,7 @@
 
             updateDetectionHistory(detection) {
                 this.detectionHistory.push(detection);
-                if (this.detectionHistory.length > 5) {
+                if (this.detectionHistory.length > 8) {
                     this.detectionHistory.shift();
                 }
             }
