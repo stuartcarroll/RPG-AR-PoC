@@ -285,7 +285,6 @@
         <video id="video-feed" autoplay playsinline muted></video>
         
         <div id="ar-overlay">
-            <div id="detection-box"></div>
             <div id="ar-content">
                 <video id="ar-video" loop muted playsinline preload="auto">
                     <source src="vid1.mp4" type="video/mp4">
@@ -319,7 +318,6 @@
                 this.debugCtx = null;
                 this.arVideo = null;
                 this.arContent = null;
-                this.detectionBox = null;
                 
                 this.isTracking = false;
                 this.targetImage = null;
@@ -352,7 +350,6 @@
                 
                 this.arContent = document.getElementById('ar-content');
                 this.arVideo = document.getElementById('ar-video');
-                this.detectionBox = document.getElementById('detection-box');
             }
 
             async startAR() {
