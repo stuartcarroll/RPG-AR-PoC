@@ -16,12 +16,14 @@ class ARApp {
         startButton.addEventListener('click', () => this.startAR());
 
         // Handle AR events
-        document.addEventListener('arjs-nft-loaded', (e) => {
-            console.log('NFT marker loaded');
+        document.addEventListener('markerFound', (e) => {
+            console.log('Marker found');
+            this.playVideo();
         });
 
-        document.addEventListener('arjs-nft-init-data', (e) => {
-            console.log('AR initialized');
+        document.addEventListener('markerLost', (e) => {
+            console.log('Marker lost');
+            this.pauseVideo();
         });
     }
 
@@ -67,18 +69,6 @@ class ARApp {
         // Setup video controls
         if (this.video) {
             this.video.muted = true; // Ensure video can autoplay on mobile
-            
-            // Play video when marker is found
-            document.addEventListener('arjs-nft-loaded', () => {
-                console.log('Marker found - playing video');
-                this.playVideo();
-            });
-
-            // Pause video when marker is lost
-            document.addEventListener('arjs-nft-lost', () => {
-                console.log('Marker lost - pausing video');
-                this.pauseVideo();
-            });
         }
 
         this.isARStarted = true;
