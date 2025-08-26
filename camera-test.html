@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile Camera Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #video {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border: 2px solid #fff;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            min-width: 120px;
+        }
+
+        button:hover {
+            background: #0051D5;
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        #status {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .success {
+            color: #34C759;
+        }
+
+        .error {
+            color: #FF3B30;
+        }
+
+        .info {
+            color: #007AFF;
+        }
+
+        #permissions-info {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid #FFC107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            max-width: 400px;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #007AFF;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="index.html" class="back-link">← Back to AR</a>
+    
+    <h1>Mobile Camera Test</h1>
+    
+    <div id="permissions-info">
+        <strong>Note:</strong> This page tests camera access for mobile devices. Make sure to allow camera permissions when prompted.
+    </div>
+
+    <video id="video" autoplay muted playsinline></video>
+    
+    <div class="controls">
+        <button id="startBtn">Start Camera</button>
+        <button id="stopBtn" disabled>Stop Camera</button>
+        <button id="switchBtn" disabled>Switch Camera</button>
+    </div>
+    
+    <div id="status">Ready to test camera</div>
+
+    <script>
+        const video = document.getElementById('video');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const switchBtn = document.getElementById('switchBtn');
+        const status = document.getElementById('status');
+
+        let currentStream = null;
+        let currentFacingMode = 'environment'; // Start with rear camera
+
+        function updateStatus(message, type = 'info') {
+            status.textContent = message;
+            status.className = type;
+        }
+
+        function updateButtons(started) {
+            startBtn.disabled = started;
+            stopBtn.disabled = !started;
+            switchBtn.disabled = !started;
+        }
+
+        async function startCamera(facingMode = 'environment') {
+            try {
+                updateStatus('Requesting camera access...', 'info');
+                
+                // Stop existing stream
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+
+                const constraints = {
+                    video: {
+                        facingMode: facingMode,
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                video.srcObject = stream;
+                currentStream = stream;
+                currentFacingMode = facingMode;
+                
+                updateStatus(`Camera started (${facingMode === 'environment' ? 'Rear' : 'Front'} camera)`, 'success');
+                updateButtons(true);
+
+                // Get actual capabilities
+                const track = stream.getVideoTracks()[0];
+                const settings = track.getSettings();
+                console.log('Camera settings:', settings);
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                let errorMessage = 'Camera access failed: ';
+                
+                if (error.name === 'NotAllowedError') {
+                    errorMessage += 'Permission denied. Please allow camera access and refresh the page.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMessage += 'No camera found on this device.';
+                } else if (error.name === 'NotReadableError') {
+                    errorMessage += 'Camera is already in use by another application.';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                updateStatus(errorMessage, 'error');
+                updateButtons(false);
+            }
+        }
+
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+                video.srcObject = null;
+                updateStatus('Camera stopped', 'info');
+                updateButtons(false);
+            }
+        }
+
+        function switchCamera() {
+            const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            startCamera(newFacingMode);
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', () => startCamera());
+        stopBtn.addEventListener('click', stopCamera);
+        switchBtn.addEventListener('click', switchCamera);
+
+        // Check for camera support
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            updateStatus('Camera API not supported in this browser', 'error');
+            startBtn.disabled = true;
+        } else {
+            updateStatus('Camera API supported. Click "Start Camera" to test.', 'success');
+        }
+
+        // Auto-start camera on mobile
+        if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            updateStatus('Mobile device detected. Starting rear camera...', 'info');
+            setTimeout(() => startCamera(), 1000);
+        }
+    </script>
+</body>
+</html>
