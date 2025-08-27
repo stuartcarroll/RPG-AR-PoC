@@ -15,7 +15,10 @@
       "Bash(cp:*)",
       "WebFetch(domain:rpgar.stuc.dev)",
       "Bash(git commit:*)",
-      "WebFetch(domain:www.rokitrpg.com)"
+      "WebFetch(domain:www.rokitrpg.com)",
+      "Bash(git checkout:*)",
+      "Bash(zip:*)",
+      "Bash(tar:*)"
     ],
     "deny": [],
     "ask": [],
