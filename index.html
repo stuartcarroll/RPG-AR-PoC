@@ -639,31 +639,27 @@
                 this.updateStatus('🎯 Tracking painting...', 'tracking');
                 this.lastDetection = Date.now();
                 
-                // Convert canvas coordinates to screen coordinates
-                const scaleX = window.innerWidth / this.canvas.width;
-                const scaleY = window.innerHeight / this.canvas.height;
+                // Get video element dimensions for proper scaling
+                const videoRect = this.video.getBoundingClientRect();
+                const canvasToVideoX = videoRect.width / this.canvas.width;
+                const canvasToVideoY = videoRect.height / this.canvas.height;
                 
-                const screenX = detection.x * scaleX;
-                const screenY = detection.y * scaleY;
-                const screenW = detection.width * scaleX;
-                const screenH = detection.height * scaleY;
+                // Convert detection coordinates to video overlay coordinates
+                const overlayX = detection.x * canvasToVideoX;
+                const overlayY = detection.y * canvasToVideoY;
+                const overlayW = detection.width * canvasToVideoX;
+                const overlayH = detection.height * canvasToVideoY;
                 
-                // Position AR content directly over the detected image
-                const centerX = screenX + screenW / 2;
-                const centerY = screenY + screenH / 2;
-                
-                // Place video at the same location as detection
-                this.arContent.style.left = screenX + 'px';
-                this.arContent.style.top = screenY + 'px';
+                // Position AR video directly over the detected area
+                this.arContent.style.left = overlayX + 'px';
+                this.arContent.style.top = overlayY + 'px';
                 this.arContent.style.display = 'block';
                 
                 // Scale video to match detected image size
-                const videoWidth = Math.max(200, screenW);
-                const videoHeight = Math.max(150, screenH);
+                const videoWidth = Math.max(200, overlayW);
+                const videoHeight = Math.max(150, overlayH);
                 this.arVideo.style.width = videoWidth + 'px';
                 this.arVideo.style.height = videoHeight + 'px';
-                
-                // Detection box removed - cleaner UI
                 
                 // Play video
                 if (this.arVideo.paused) {
