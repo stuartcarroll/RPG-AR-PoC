@@ -325,14 +325,15 @@
                 this.detectionHistory = [];
                 this.smoothingFactor = 0.9;
                 this.consecutiveDetections = 0;
-                this.requiredConsecutive = 3; // Need 3 consecutive good detections
+                this.requiredConsecutive = 8; // Need 8 consecutive perfect detections
+                this.lastStableDetection = null;
                 
                 // Performance tracking
                 this.frameCount = 0;
                 this.lastFpsTime = Date.now();
                 
                 // Detection parameters
-                this.confidenceThreshold = 0.6; // Very high threshold - only trigger on very good matches
+                this.confidenceThreshold = 0.85; // Extremely high threshold - only perfect matches
                 this.skipFrames = 3; // Process every 4th frame for stability
                 this.currentFrame = 0;
                 
@@ -444,12 +445,25 @@
                     const avgDetection = this.getSmoothedDetection();
                     
                     if (avgDetection.confidence > this.confidenceThreshold) {
+                        // Check for position stability - reject if detection jumps around too much
+                        if (this.lastStableDetection) {
+                            const positionChange = Math.abs(avgDetection.x - this.lastStableDetection.x) + 
+                                                 Math.abs(avgDetection.y - this.lastStableDetection.y);
+                            if (positionChange > 50) { // Allow small movement but reject big jumps
+                                this.consecutiveDetections = 0;
+                                return;
+                            }
+                        }
+                        
                         this.consecutiveDetections++;
+                        this.lastStableDetection = avgDetection;
+                        
                         if (this.consecutiveDetections >= this.requiredConsecutive) {
                             this.onImageDetected(avgDetection);
                         }
                     } else {
                         this.consecutiveDetections = 0;
+                        this.lastStableDetection = null;
                         this.onImageLost();
                     }
                     
@@ -472,14 +486,18 @@
                 for (const scale of scales) {
                     const match = this.templateMatch(frameData, scale);
                     
-                    // Require minimum size to avoid tiny false positives
-                    const minScreenSize = 100; // pixels
+                    // Require minimum size and aspect ratio to avoid false positives
+                    const minScreenSize = 150; // pixels
+                    const maxScreenSize = 800; // pixels
                     const screenW = (match.width || 80) * (window.innerWidth / this.canvas.width);
                     const screenH = (match.height || 60) * (window.innerHeight / this.canvas.height);
+                    const aspectRatio = screenW / screenH;
                     
+                    // Only accept reasonably sized rectangles with proper aspect ratio
                     if (match.confidence > bestMatch.confidence && 
-                        screenW > minScreenSize && 
-                        screenH > minScreenSize) {
+                        screenW > minScreenSize && screenW < maxScreenSize &&
+                        screenH > minScreenSize && screenH < maxScreenSize &&
+                        aspectRatio > 0.8 && aspectRatio < 2.0) {
                         bestMatch = { ...match, scale };
                     }
                 }
@@ -566,7 +584,15 @@
                 if (samples === 0) return 0;
                 
                 const baseScore = score / samples;
-                const varianceBonus = Math.min(0.3, colorVariance / (samples * 100)); // Bonus for colorful images
+                const varianceBonus = Math.min(0.2, colorVariance / (samples * 100)); // Bonus for colorful images
+                
+                // Require significant color variance - paintings should be colorful
+                const minVariance = 20; // Minimum color variance required
+                const avgVariance = colorVariance / samples;
+                
+                if (avgVariance < minVariance) {
+                    return 0; // Reject plain/uniform colored areas
+                }
                 
                 return Math.min(1, baseScore + varianceBonus);
             }
