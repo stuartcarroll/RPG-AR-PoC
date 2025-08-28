@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>v2.1 - RPG AR Experience - Image Tracking</title>
+    <title>v2.2 - RPG AR Experience - Image Tracking</title>
     <style>
         * {
             margin: 0;
@@ -156,7 +156,7 @@
     <div id="start-screen">
         <div class="container">
             <h1>RPG AR Experience</h1>
-            <p class="subtitle">Advanced Image Detection - v2.1</p>
+            <p class="subtitle">Advanced Image Detection - v2.2</p>
             
             <div class="artwork-card">
                 <h2 class="artwork-title">The Adoration of the Shepherds, Guido Reni</h2>
@@ -207,9 +207,9 @@
                 this.templateHeight = 0;
                 this.lastDetection = null;
                 
-                // Settings - balanced for accuracy and reliability
-                this.confidenceThreshold = 0.55; // Higher threshold to reduce false positives
-                this.requiredFrames = 3; // More frames required for stability
+                // Settings - balanced for accuracy and reliability  
+                this.confidenceThreshold = 0.45; // Moderate threshold - was too high at 55%
+                this.requiredFrames = 2; // Reduced back to 2 frames for responsiveness
                 this.consecutiveDetections = 0;
                 
                 // Performance
@@ -335,7 +335,7 @@
                         if (this.lastDetection) {
                             const positionChange = Math.abs(detection.x - this.lastDetection.x) + 
                                                  Math.abs(detection.y - this.lastDetection.y);
-                            if (positionChange > 40) {
+                            if (positionChange > 60) { // More lenient position tolerance
                                 console.log(`Position jump detected: ${Math.round(positionChange)}px - resetting counter`);
                                 this.consecutiveDetections = 0;
                                 requestAnimationFrame(() => this.trackingLoop());
@@ -374,9 +374,21 @@
                 for (const scale of scales) {
                     const match = this.templateMatch(frameData, scale);
                     
-                    // Validate detection to reduce false positives
-                    if (match.confidence > bestMatch.confidence && this.validateDetection(match, frameData)) {
-                        bestMatch = match;
+                    // Debug: log all matches above 20% confidence
+                    if (match.confidence > 0.2) {
+                        console.log(`📍 Scale ${scale}: ${Math.round(match.confidence * 100)}% confidence at (${Math.round(match.x)},${Math.round(match.y)})`);
+                    }
+                    
+                    // Only validate if confidence is reasonable
+                    if (match.confidence > bestMatch.confidence) {
+                        if (match.confidence > 0.3) { // Only validate matches above 30%
+                            if (this.validateDetection(match, frameData)) {
+                                bestMatch = match;
+                                console.log(`🎯 New best validated match: ${Math.round(match.confidence * 100)}%`);
+                            }
+                        } else {
+                            bestMatch = match; // Accept low-confidence matches without validation
+                        }
                     }
                 }
                 
@@ -384,7 +396,7 @@
             }
 
             validateDetection(detection, frameData) {
-                // Size validation - must be reasonable size on screen
+                // Size validation - more lenient size requirements
                 const videoRect = this.video.getBoundingClientRect();
                 const scaleX = videoRect.width / this.canvas.width;
                 const scaleY = videoRect.height / this.canvas.height;
@@ -392,26 +404,27 @@
                 const screenW = detection.width * scaleX;
                 const screenH = detection.height * scaleY;
                 
-                // Must be between 120px and 600px on screen
-                if (screenW < 120 || screenW > 600 || screenH < 120 || screenH > 600) {
-                    console.log(`Size validation failed: ${Math.round(screenW)}x${Math.round(screenH)}px`);
+                // Relaxed size limits - was too strict at 120-600px
+                if (screenW < 80 || screenW > 800 || screenH < 80 || screenH > 800) {
+                    console.log(`❌ Size validation failed: ${Math.round(screenW)}x${Math.round(screenH)}px (need 80-800px)`);
                     return false;
                 }
                 
-                // Aspect ratio validation - should be roughly portrait (3:4 ratio)
+                // More lenient aspect ratio - was too narrow at 0.6-0.9
                 const aspectRatio = screenW / screenH;
-                if (aspectRatio < 0.6 || aspectRatio > 0.9) {
-                    console.log(`Aspect ratio validation failed: ${aspectRatio.toFixed(2)} (expected 0.6-0.9)`);
+                if (aspectRatio < 0.5 || aspectRatio > 1.2) {
+                    console.log(`❌ Aspect ratio validation failed: ${aspectRatio.toFixed(2)} (need 0.5-1.2)`);
                     return false;
                 }
                 
-                // Color variance validation - check if detection area has sufficient color variety
+                // Reduced color variance requirement - was too high at 15
                 const colorVariance = this.checkColorVariance(frameData, detection.x, detection.y, detection.width, detection.height);
-                if (colorVariance < 15) {
-                    console.log(`Color variance validation failed: ${colorVariance.toFixed(1)} (need >15)`);
+                if (colorVariance < 8) {
+                    console.log(`❌ Color variance validation failed: ${colorVariance.toFixed(1)} (need >8)`);
                     return false;
                 }
                 
+                console.log(`✅ Validation passed: size=${Math.round(screenW)}x${Math.round(screenH)}, aspect=${aspectRatio.toFixed(2)}, variance=${colorVariance.toFixed(1)}`);
                 return true;
             }
 
