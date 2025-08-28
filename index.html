@@ -1,62 +1,82 @@
-<!-- import aframe and then ar.js with image tracking / location based features -->
-<script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1c2407b26c61958baa93967b5412487cd94b290b/dist/aframe-master.min.js"></script>
-<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>AR Painting Overlay (MindAR + A-Frame)</title>
 
-<!-- style for the loader -->
-<style>
-  .arjs-loader {
-    height: 100%;
-    width: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    background-color: rgba(0, 0, 0, 0.8);
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
+  <!-- A-Frame and MindAR (self-host these files in production for full control) -->
+  <script src="https://unpkg.com/aframe@1.5.0/dist/aframe.min.js"></script>
+  <script src="https://unpkg.com/mind-ar/dist/mindar-image-aframe.prod.js"></script>
 
-  .arjs-loader div {
-    text-align: center;
-    font-size: 1.25em;
-    color: white;
-  }
-</style>
+  <style>
+    body, html { margin:0; padding:0; background:#000; }
+    #unmute {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,.7);
+      color: #fff; font-family: system-ui, sans-serif; border: 1px solid #444;
+      display: none; z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <!-- Autoplay requires muted + playsinline on mobile -->
+  <video id="video" src="./vid1.mp4" preload="auto" loop muted playsinline webkit-playsinline style="display:none"></video>
+  <button id="unmute">Tap for sound</button>
 
-<body style="margin : 0px; overflow: hidden;">
-  <!-- minimal loader shown until image descriptors are loaded. Loading may take a while according to the device computational power -->
-  <div class="arjs-loader">
-    <div>Loading, please wait...</div>
-  </div>
-
-  <!-- a-frame scene -->
   <a-scene
-    vr-mode-ui="enabled: false;"
-    renderer="logarithmicDepthBuffer: true;"
-    embedded
-    arjs="trackingMethod: best; sourceType: webcam;debugUIEnabled: false;"
+    mindar-image="imageTargetSrc: ./targets.mind; filterMinCF:0.0001; filterBeta: 0.01;"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: true"
+    renderer="colorManagement: true, physicallyCorrectLights: true, antialias: true"
   >
-    <!-- a-nft is the anchor that defines an Image Tracking entity -->
-    <!-- on 'url' use the path to the Image Descriptors created before. -->
-    <!-- the path should end with the name without the extension e.g. if file is 'pinball.fset' the path should end with 'pinball' -->
-    <a-nft
-      type="nft"
-      url="ntfts/paint1"
-      smooth="true"
-      smoothCount="10"
-      smoothTolerance=".01"
-      smoothThreshold="5"
-    >
-      <!-- as a child of the a-nft entity, you can define the content to show. here's a GLTF model entity -->
-      <a-entity
-        gltf-model="model/Triangle.gltf"
-        scale="5 5 5"
-        position="50 150 0"
-      >
-      </a-entity>
-    </a-nft>
-    <!-- static camera that moves according to the device movemenents -->
-    <a-entity camera></a-entity>
+    <a-assets></a-assets>
+
+    <!-- Camera required by MindAR -->
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- The image target index must match the one you exported -->
+    <a-entity mindar-image-target="targetIndex: 0">
+      <!-- Plane sized to the physical painting aspect ratio (e.g., 1.0 x 0.7 meters) -->
+      <a-video
+        id="video-plane"
+        src="#video"
+        position="0 0 0"
+        rotation="0 0 0"
+        width="1.0"
+        height="0.7"
+        material="shader: standard; roughness:0.9; metalness:0.0"
+      ></a-video>
+    </a-entity>
   </a-scene>
+
+  <script>
+    // Ensure video starts once the camera stream & tracking are active
+    const v = document.getElementById('video');
+    const unmuteBtn = document.getElementById('unmute');
+
+    const startPlayback = async () => {
+      try {
+        await v.play();
+        // show unmute only if audio exists
+        if (v.muted) unmuteBtn.style.display = 'block';
+      } catch (e) {
+        // Some browsers still require a user gesture; show a hint button
+        unmuteBtn.textContent = 'Tap to start video';
+        unmuteBtn.style.display = 'block';
+      }
+    };
+
+    document.querySelector('a-scene').addEventListener('loaded', startPlayback);
+    unmuteBtn.addEventListener('click', async () => {
+      try {
+        v.muted = false;
+        if (v.paused) await v.play();
+        unmuteBtn.style.display = 'none';
+      } catch (e) {
+        // keep button visible if it still can't play
+      }
+    });
+  </script>
 </body>
+</html>
