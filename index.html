@@ -233,7 +233,9 @@
         }
 
         #confidence, #position, #fps {
-            display: none;
+            display: block;
+            font-size: 11px;
+            margin: 2px 0;
         }
 
         #debug-canvas {
@@ -250,7 +252,19 @@
         .error { color: #ff0000; }
 
         #controls {
-            display: none;
+            display: block;
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+        }
+        
+        #test-button {
+            background: rgba(255,255,255,0.9);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -325,7 +339,7 @@
                 this.detectionHistory = [];
                 this.smoothingFactor = 0.9;
                 this.consecutiveDetections = 0;
-                this.requiredConsecutive = 8; // Need 8 consecutive perfect detections
+                this.requiredConsecutive = 3; // Need 3 consecutive detections for stability
                 this.lastStableDetection = null;
                 
                 // Performance tracking
@@ -333,8 +347,8 @@
                 this.lastFpsTime = Date.now();
                 
                 // Detection parameters
-                this.confidenceThreshold = 0.85; // Extremely high threshold - only perfect matches
-                this.skipFrames = 3; // Process every 4th frame for stability
+                this.confidenceThreshold = 0.65; // More reasonable threshold for real-world conditions
+                this.skipFrames = 2; // Process every 3rd frame for better responsiveness
                 this.currentFrame = 0;
                 
                 this.init();
@@ -399,14 +413,14 @@
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
                 img.onload = () => {
-                    // Create standardized target
+                    // Create standardized target maintaining aspect ratio
                     const targetCanvas = document.createElement('canvas');
                     const targetCtx = targetCanvas.getContext('2d');
                     targetCanvas.width = 80;
-                    targetCanvas.height = 60;
-                    targetCtx.drawImage(img, 0, 0, 80, 60);
+                    targetCanvas.height = 107; // Maintain portrait aspect ratio (960:1280 ≈ 3:4)
+                    targetCtx.drawImage(img, 0, 0, 80, 107);
                     
-                    this.targetImage = targetCtx.getImageData(0, 0, 80, 60);
+                    this.targetImage = targetCtx.getImageData(0, 0, 80, 107);
                     this.updateStatus('Ready! Point camera at painting', 'searching');
                     this.startTracking();
                 };
@@ -449,8 +463,9 @@
                         if (this.lastStableDetection) {
                             const positionChange = Math.abs(avgDetection.x - this.lastStableDetection.x) + 
                                                  Math.abs(avgDetection.y - this.lastStableDetection.y);
-                            if (positionChange > 50) { // Allow small movement but reject big jumps
-                                this.consecutiveDetections = 0;
+                            if (positionChange > 80) { // Allow more movement for handheld devices
+                                this.consecutiveDetections = Math.max(0, this.consecutiveDetections - 1);
+                                requestAnimationFrame(() => this.trackingLoop());
                                 return;
                             }
                         }
@@ -507,7 +522,7 @@
 
             templateMatch(frameData, scale) {
                 const targetW = Math.floor(80 * scale);
-                const targetH = Math.floor(60 * scale);
+                const targetH = Math.floor(107 * scale);
                 const step = Math.max(4, Math.floor(8 / scale));
                 
                 let bestScore = 0;
@@ -550,7 +565,7 @@
                             const frameIdx = (frameY * frameData.width + frameX) * 4;
                             
                             const targetX = Math.floor((x / width) * 80);
-                            const targetY = Math.floor((y / height) * 60);
+                            const targetY = Math.floor((y / height) * 107);
                             const targetIdx = (targetY * 80 + targetX) * 4;
                             
                             if (targetIdx < this.targetImage.data.length) {
@@ -586,12 +601,12 @@
                 const baseScore = score / samples;
                 const varianceBonus = Math.min(0.2, colorVariance / (samples * 100)); // Bonus for colorful images
                 
-                // Require significant color variance - paintings should be colorful
-                const minVariance = 20; // Minimum color variance required
+                // Require some color variance but be less strict
+                const minVariance = 10; // Lower minimum color variance for varied lighting
                 const avgVariance = colorVariance / samples;
                 
                 if (avgVariance < minVariance) {
-                    return 0; // Reject plain/uniform colored areas
+                    return baseScore * 0.3; // Reduce score for uniform areas but don't completely reject
                 }
                 
                 return Math.min(1, baseScore + varianceBonus);
