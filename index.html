@@ -69,6 +69,29 @@
     };
 
     document.querySelector('a-scene').addEventListener('loaded', startPlayback);
+    
+    // Enhanced tracking event handlers
+    document.querySelector('a-scene').addEventListener('arReady', (event) => {
+      console.log('MindAR is ready');
+    });
+    
+    document.querySelector('a-scene').addEventListener('arError', (event) => {
+      console.log('MindAR error:', event);
+    });
+
+    // Target tracking events
+    const targetEntity = document.querySelector('[mindar-image-target]');
+    
+    targetEntity.addEventListener('targetFound', event => {
+      console.log('Target found');
+      v.play();
+    });
+    
+    targetEntity.addEventListener('targetLost', event => {
+      console.log('Target lost');
+      v.pause();
+    });
+
     unmuteBtn.addEventListener('click', async () => {
       try {
         v.muted = false;
