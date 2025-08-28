@@ -1,106 +1,17 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>AR Painting Overlay (MindAR + A-Frame)</title>
 
-  <!-- A-Frame and MindAR (self-host these files in production for full control) -->
-<script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
-
-  <script src="https://unpkg.com/mind-ar/dist/mindar-image-aframe.prod.js"></script>
-
-  <style>
-    body, html { margin:0; padding:0; background:#000; }
-    #unmute {
-      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-      padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,.7);
-      color: #fff; font-family: system-ui, sans-serif; border: 1px solid #444;
-      display: none; z-index: 10;
-    }
-  </style>
-</head>
-<body>
-  <!-- Autoplay requires muted + playsinline on mobile -->
-  <video id="video" src="./vid1.mp4" preload="auto" loop muted playsinline webkit-playsinline style="display:none"></video>
-  <button id="unmute">Tap for sound</button>
-
-  <a-scene
-    mindar-image="imageTargetSrc: ./targets.mind; filterMinCF:0.0001; filterBeta: 0.01;"
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: true"
-    renderer="colorManagement: true, physicallyCorrectLights: true, antialias: true"
-  >
-    <a-assets></a-assets>
-
-    <!-- Camera required by MindAR -->
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-    <!-- The image target index must match the one you exported -->
-    <a-entity mindar-image-target="targetIndex: 0">
-      <!-- Plane sized to the physical painting aspect ratio (e.g., 1.0 x 0.7 meters) -->
-      <a-video
-        id="video-plane"
-        src="#video"
-        position="0 0 0"
-        rotation="0 0 0"
-        width="1.0"
-        height="0.7"
-        material="shader: standard; roughness:0.9; metalness:0.0"
-      ></a-video>
-    </a-entity>
-  </a-scene>
-
-  <script>
-    // Ensure video starts once the camera stream & tracking are active
-    const v = document.getElementById('video');
-    const unmuteBtn = document.getElementById('unmute');
-
-    const startPlayback = async () => {
-      try {
-        await v.play();
-        // show unmute only if audio exists
-        if (v.muted) unmuteBtn.style.display = 'block';
-      } catch (e) {
-        // Some browsers still require a user gesture; show a hint button
-        unmuteBtn.textContent = 'Tap to start video';
-        unmuteBtn.style.display = 'block';
-      }
-    };
-
-    document.querySelector('a-scene').addEventListener('loaded', startPlayback);
-    
-    // Enhanced tracking event handlers
-    document.querySelector('a-scene').addEventListener('arReady', (event) => {
-      console.log('MindAR is ready');
-    });
-    
-    document.querySelector('a-scene').addEventListener('arError', (event) => {
-      console.log('MindAR error:', event);
-    });
-
-    // Target tracking events
-    const targetEntity = document.querySelector('[mindar-image-target]');
-    
-    targetEntity.addEventListener('targetFound', event => {
-      console.log('Target found');
-      v.play();
-    });
-    
-    targetEntity.addEventListener('targetLost', event => {
-      console.log('Target lost');
-      v.pause();
-    });
-
-    unmuteBtn.addEventListener('click', async () => {
-      try {
-        v.muted = false;
-        if (v.paused) await v.play();
-        unmuteBtn.style.display = 'none';
-      } catch (e) {
-        // keep button visible if it still can't play
-      }
-    });
-  </script>
-</body>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image.prod.js"></script>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  </head>
+  <body>
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      <a-entity mindar-image-target="targetIndex: 0">
+        <a-plane color="blue" opaciy="0.5" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
+      </a-entity>
+    </a-scene>
+  </body>
 </html>
