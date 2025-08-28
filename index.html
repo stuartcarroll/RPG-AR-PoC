@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>v2.2 - RPG AR Experience - Image Tracking</title>
+    <title>v2.3 - RPG AR Experience - Image Tracking</title>
     <style>
         * {
             margin: 0;
@@ -156,7 +156,7 @@
     <div id="start-screen">
         <div class="container">
             <h1>RPG AR Experience</h1>
-            <p class="subtitle">Advanced Image Detection - v2.2</p>
+            <p class="subtitle">Advanced Image Detection - v2.3</p>
             
             <div class="artwork-card">
                 <h2 class="artwork-title">The Adoration of the Shepherds, Guido Reni</h2>
@@ -318,6 +318,13 @@
             trackingLoop() {
                 if (!this.isTracking) return;
 
+                // TEMPORARY: Only process every 30 frames for cleaner debug logs
+                this.frameCount++;
+                if (this.frameCount % 30 !== 0) {
+                    requestAnimationFrame(() => this.trackingLoop());
+                    return;
+                }
+
                 try {
                     // Capture video frame
                     this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
@@ -368,27 +375,19 @@
             detectImage(frameData) {
                 let bestMatch = { confidence: 0, x: 0, y: 0 };
                 
-                // Test multiple scales
-                const scales = [0.8, 1.0, 1.2];
+                // TEMPORARY: Test only one scale for debugging
+                const scales = [1.0];
                 
                 for (const scale of scales) {
                     const match = this.templateMatch(frameData, scale);
                     
-                    // Debug: log all matches above 20% confidence
-                    if (match.confidence > 0.2) {
-                        console.log(`📍 Scale ${scale}: ${Math.round(match.confidence * 100)}% confidence at (${Math.round(match.x)},${Math.round(match.y)})`);
-                    }
+                    // Debug: log ALL matches, even 0%
+                    console.log(`🔍 Scale ${scale}: ${(match.confidence * 100).toFixed(2)}% confidence at (${Math.round(match.x)},${Math.round(match.y)})`);
                     
-                    // Only validate if confidence is reasonable
+                    // TEMPORARY: Bypass all validation for debugging
                     if (match.confidence > bestMatch.confidence) {
-                        if (match.confidence > 0.3) { // Only validate matches above 30%
-                            if (this.validateDetection(match, frameData)) {
-                                bestMatch = match;
-                                console.log(`🎯 New best validated match: ${Math.round(match.confidence * 100)}%`);
-                            }
-                        } else {
-                            bestMatch = match; // Accept low-confidence matches without validation
-                        }
+                        bestMatch = match;
+                        console.log(`📈 New best match (no validation): ${(match.confidence * 100).toFixed(2)}%`);
                     }
                 }
                 
@@ -458,16 +457,29 @@
             templateMatch(frameData, scale) {
                 const templateW = Math.floor(this.templateWidth * scale);
                 const templateH = Math.floor(this.templateHeight * scale);
-                const step = 8; // Skip pixels for speed
+                const step = 16; // Larger step for faster debugging
+                
+                console.log(`🔍 Template matching: ${templateW}x${templateH} template in ${frameData.width}x${frameData.height} frame`);
                 
                 let bestScore = 0;
                 let bestX = 0;
                 let bestY = 0;
+                let positionsChecked = 0;
+                let scoresAboveZero = 0;
                 
                 // Search across the frame
                 for (let y = 0; y <= frameData.height - templateH; y += step) {
                     for (let x = 0; x <= frameData.width - templateW; x += step) {
                         const score = this.calculateMatch(frameData, x, y, templateW, templateH);
+                        positionsChecked++;
+                        
+                        if (score > 0) {
+                            scoresAboveZero++;
+                            if (scoresAboveZero <= 3) { // Log first 3 non-zero scores
+                                console.log(`💡 Position (${x},${y}): ${(score * 100).toFixed(2)}%`);
+                            }
+                        }
+                        
                         if (score > bestScore) {
                             bestScore = score;
                             bestX = x;
@@ -475,6 +487,8 @@
                         }
                     }
                 }
+                
+                console.log(`📊 Checked ${positionsChecked} positions, ${scoresAboveZero} had score >0, best: ${(bestScore * 100).toFixed(2)}%`);
                 
                 return {
                     confidence: bestScore,
@@ -488,7 +502,15 @@
             calculateMatch(frameData, startX, startY, width, height) {
                 let score = 0;
                 let samples = 0;
-                const step = 2;
+                const step = 4; // Larger step for debugging
+                let templateErrors = 0;
+                let debugPixels = [];
+                
+                // Quick validation
+                if (!this.targetImage || !this.targetImage.data) {
+                    console.log(`❌ Template data not available`);
+                    return 0;
+                }
                 
                 for (let y = 0; y < height; y += step) {
                     for (let x = 0; x < width; x += step) {
@@ -503,7 +525,7 @@
                             const templateY = Math.floor((y / height) * this.templateHeight);
                             const templateIdx = (templateY * this.templateWidth + templateX) * 4;
                             
-                            if (templateIdx < this.targetImage.data.length) {
+                            if (templateIdx < this.targetImage.data.length && templateX < this.templateWidth && templateY < this.templateHeight) {
                                 // Simple RGB difference
                                 const frameR = frameData.data[frameIdx];
                                 const frameG = frameData.data[frameIdx + 1];
@@ -512,6 +534,11 @@
                                 const templateG = this.targetImage.data[templateIdx + 1];
                                 const templateB = this.targetImage.data[templateIdx + 2];
                                 
+                                // Debug first few pixel comparisons
+                                if (debugPixels.length < 2) {
+                                    debugPixels.push(`F[${frameR},${frameG},${frameB}] vs T[${templateR},${templateG},${templateB}]`);
+                                }
+                                
                                 const diff = Math.abs(frameR - templateR) + 
                                            Math.abs(frameG - templateG) + 
                                            Math.abs(frameB - templateB);
@@ -519,12 +546,22 @@
                                 const pixelScore = Math.max(0, (765 - diff) / 765); // 765 = 255*3
                                 score += pixelScore;
                                 samples++;
+                            } else {
+                                templateErrors++;
                             }
                         }
                     }
                 }
                 
-                return samples > 0 ? score / samples : 0;
+                const result = samples > 0 ? score / samples : 0;
+                
+                // Debug first position that gets checked
+                if (startX === 0 && startY === 0) {
+                    console.log(`🎨 First position debug: samples=${samples}, templateErrors=${templateErrors}, score=${result.toFixed(3)}`);
+                    console.log(`🎨 Pixel comparisons: ${debugPixels.join(', ')}`);
+                }
+                
+                return result;
             }
 
             onImageDetected(detection) {
