@@ -6,13 +6,16 @@
 <body>
 
     <a-scene
-  mindar-image="imageTargetSrc:targets.mind;"
-  vr-mode-ui="enabled: false"
-  id="scene"
->
-  <a-camera look-controls="enabled: false"></a-camera>
-</a-scene>
+        mindar-image="imageTargetSrc:targets.mind;"
+        vr-mode-ui="enabled: false"
+        id="scene"
+        >
+        <a-camera look-controls="enabled: false"></a-camera>
+    </a-scene>
 
+    <a-entity mindar-image-target="targetIndex: 0">
+        <a-box scale="0.5 0.5 0.5" color="#78C3E8"> </a-box>
+    </a-entity>
 
 
 </body>
