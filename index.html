@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>v1.5 - RPG AR Experience - Image Tracking</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <title>v2.0 - RPG AR Experience - Image Tracking</title>
     <style>
         * {
             margin: 0;
@@ -13,12 +12,10 @@
         }
 
         body {
-            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: Arial, sans-serif;
             background: #ffffff;
-            color: #333333;
+            color: #333;
             overflow: hidden;
-            margin: 0;
-            line-height: 1.6;
         }
 
         #start-screen {
@@ -32,43 +29,23 @@
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            padding: 40px 20px;
+            padding: 20px;
         }
 
         .container {
-            max-width: 1200px;
-            width: 100%;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            min-height: 80vh;
-        }
-
-        .main-header {
             text-align: center;
-            margin-bottom: 60px;
+            max-width: 500px;
         }
 
-        .main-header h1 {
-            font-size: 3rem;
-            font-weight: 300;
-            margin: 0 0 16px 0;
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
             color: #2c2c2c;
-            letter-spacing: -1px;
         }
 
         .subtitle {
-            font-size: 1.2rem;
-            color: #666666;
-            font-weight: 400;
-            margin: 0;
-        }
-
-        .artwork-grid {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            font-size: 1.1rem;
+            color: #666;
             margin-bottom: 40px;
         }
 
@@ -76,100 +53,33 @@
             background: #ffffff;
             border: 1px solid #e0e0e0;
             border-radius: 12px;
-            padding: 48px 40px;
-            text-align: center;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
-            max-width: 500px;
-            width: 100%;
-        }
-
-        .artwork-card:hover {
-            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
-            transform: translateY(-2px);
-        }
-
-        .artwork-info {
-            margin-bottom: 32px;
+            padding: 40px 30px;
+            margin-bottom: 20px;
         }
 
         .artwork-title {
-            font-size: 1.8rem;
-            font-weight: 500;
-            margin: 0 0 16px 0;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
             color: #2c2c2c;
         }
 
         .artwork-description {
-            font-size: 1rem;
-            color: #666666;
-            margin: 0;
-            line-height: 1.5;
+            color: #666;
+            margin-bottom: 25px;
         }
 
-        .experience-button {
+        #start-button {
             background: #2c2c2c;
             border: none;
             color: white;
-            padding: 16px 32px;
+            padding: 15px 30px;
             font-size: 1rem;
-            font-weight: 500;
             border-radius: 8px;
             cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.3s ease;
-            font-family: inherit;
         }
 
-        .experience-button:hover {
+        #start-button:hover {
             background: #1a1a1a;
-            transform: translateY(-1px);
-        }
-
-        .button-icon {
-            font-size: 1.2rem;
-            transition: transform 0.3s ease;
-        }
-
-        .experience-button:hover .button-icon {
-            transform: translateX(4px);
-        }
-
-        .page-footer {
-            text-align: center;
-            padding: 20px 0;
-            border-top: 1px solid #e0e0e0;
-        }
-
-        .page-footer p {
-            font-size: 0.9rem;
-            color: #999999;
-            margin: 0;
-        }
-
-        @media (max-width: 768px) {
-            .main-header h1 {
-                font-size: 2.2rem;
-            }
-
-            .subtitle {
-                font-size: 1.1rem;
-            }
-
-            .artwork-card {
-                padding: 32px 24px;
-                margin: 0 16px;
-            }
-
-            .artwork-title {
-                font-size: 1.5rem;
-            }
-
-            .container {
-                padding: 20px;
-            }
         }
 
         #ar-container {
@@ -179,6 +89,7 @@
             width: 100vw;
             height: 100vh;
             display: none;
+            background: black;
         }
 
         #video-feed {
@@ -187,208 +98,122 @@
             object-fit: cover;
         }
 
-        #ar-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-
         #ar-content {
             position: absolute;
             display: none;
-            transition: all 0.3s ease-out;
-            transform-origin: center center;
         }
 
         #ar-video {
-            width: 250px;
-            height: 180px;
             border: 2px solid rgba(255, 255, 255, 0.8);
             border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-            background: rgba(0, 0, 0, 0.1);
-            object-fit: cover;
-        }
-
-        #detection-box {
-            display: none !important;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
         }
 
         #status {
             position: absolute;
-            top: 30px;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(255,255,255,0.9);
             color: #333;
-            padding: 8px 16px;
+            padding: 10px 20px;
             border-radius: 20px;
-            font-size: 13px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            font-weight: 500;
+            font-size: 14px;
         }
 
-        #confidence, #position, #fps {
-            display: block;
-            font-size: 11px;
-            margin: 2px 0;
-        }
-
-        #debug-canvas {
-            display: block;
+        #debug-info {
             position: absolute;
-            top: 80px;
+            top: 70px;
             left: 20px;
-            border: 2px solid red;
-            z-index: 100;
-            background: rgba(255,255,255,0.9);
+            background: rgba(0,0,0,0.8);
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+            border-radius: 5px;
+            min-width: 300px;
         }
-
-        #target-img {
-            display: none;
-        }
-
-        .detected { color: #00ff00; }
-        .tracking { color: #00aaff; }
-        .searching { color: #ffaa00; }
-        .error { color: #ff0000; }
 
         #controls {
-            display: block;
             position: absolute;
             bottom: 20px;
             right: 20px;
         }
-        
-        #test-button {
+
+        button {
             background: rgba(255,255,255,0.9);
             border: none;
             padding: 10px 15px;
             border-radius: 5px;
             font-size: 12px;
             cursor: pointer;
-            margin-bottom: 10px;
-        }
-        
-        #mobile-console {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            width: 300px;
-            height: 200px;
-            background: rgba(0,0,0,0.8);
-            color: #00ff00;
-            font-family: monospace;
-            font-size: 10px;
-            padding: 10px;
-            overflow-y: auto;
-            border-radius: 5px;
-            z-index: 200;
-            display: none;
+            margin: 5px;
+            display: block;
         }
     </style>
 </head>
 <body>
     <div id="start-screen">
         <div class="container">
-            <header class="main-header">
-                <h1>RPG AR Experience</h1>
-                <p class="subtitle">Advanced Image Detection - v1.5</p>
-            </header>
+            <h1>RPG AR Experience</h1>
+            <p class="subtitle">Advanced Image Detection - v2.0</p>
             
-            <main class="artwork-grid">
-                <div class="artwork-card">
-                    <div class="artwork-info">
-                        <h2 class="artwork-title">The Adoration of the Saints</h2>
-                        <p class="artwork-description">Point your camera at the painting to begin the AR experience</p>
-                    </div>
-                    <button id="start-button" class="experience-button">
-                        <span class="button-text">Start Experience</span>
-                        <span class="button-icon">→</span>
-                    </button>
-                </div>
-            </main>
-            
-            <footer class="page-footer">
-                <p>Powered by Computer Vision & AR Technology</p>
-            </footer>
+            <div class="artwork-card">
+                <h2 class="artwork-title">The Adoration of the Shepherds, Guido Reni</h2>
+                <p class="artwork-description">Point your camera at the painting to begin the AR experience</p>
+                <button id="start-button">Start Experience</button>
+            </div>
         </div>
     </div>
 
     <div id="ar-container">
         <video id="video-feed" autoplay playsinline muted></video>
         
-        <div id="ar-overlay">
-            <div id="ar-content">
-                <video id="ar-video" loop muted playsinline preload="auto">
-                    <source src="vid1.mp4" type="video/mp4">
-                </video>
-            </div>
+        <div id="ar-content">
+            <video id="ar-video" loop muted playsinline preload="auto">
+                <source src="vid1.mp4" type="video/mp4">
+            </video>
         </div>
 
-        <canvas id="debug-canvas"></canvas>
-
-        <div id="status" class="searching">
-            <div id="status-text">Initializing camera...</div>
-            <div id="confidence">Confidence: 0%</div>
-            <div id="position">Position: -</div>
-            <div id="fps">FPS: -</div>
-        </div>
+        <div id="status">Initializing...</div>
         
+        <div id="debug-info">
+            <div>Confidence: <span id="confidence">0%</span></div>
+            <div>Position: <span id="position">-,-</span></div>
+            <div>FPS: <span id="fps">-</span></div>
+            <div>Template: <span id="template-status">Loading...</span></div>
+        </div>
+
         <div id="controls">
             <button id="test-button">Test Detection</button>
-            <button id="console-button">Show Console</button>
+            <button id="debug-button">Debug Template</button>
         </div>
-        
-        <div id="mobile-console"></div>
-
-        <img id="target-img" src="paint1.jpg" alt="Target">
     </div>
 
     <script>
-        /**
-         * ImageTracker - Main AR Image Detection System
-         * 
-         * This class handles:
-         * 1. Camera access and video stream processing
-         * 2. Template matching for image detection
-         * 3. AR content positioning and display
-         * 4. Performance monitoring and debugging
-         */
-        class ImageTracker {
+        class SimpleARTracker {
             constructor() {
-                // === VIDEO & CANVAS ELEMENTS ===
-                this.video = null;          // Main camera video element
-                this.canvas = null;         // Processing canvas (320x240) - where detection happens
-                this.ctx = null;           // 2D context for processing canvas
-                this.debugCanvas = null;   // Visual debug canvas (160x120) - shows what detection sees
-                this.debugCtx = null;     // Debug canvas context
-                this.arVideo = null;      // Overlay video element (vid1.mp4)
-                this.arContent = null;    // Container for AR overlay content
+                // Core elements
+                this.video = null;
+                this.canvas = null;
+                this.ctx = null;
+                this.arVideo = null;
+                this.arContent = null;
                 
-                // === DETECTION STATE ===
-                this.isTracking = false;           // Main tracking loop state
-                this.targetImage = null;           // Processed target image data (paint1.jpg)
-                this.lastDetection = null;         // Timestamp of last successful detection
-                this.detectionHistory = [];        // Rolling history of detection results for smoothing
-                this.smoothingFactor = 0.9;        // Not currently used
-                this.consecutiveDetections = 0;    // Count of consecutive successful detections
-                this.requiredConsecutive = 3;     // Need 3 consecutive detections before showing AR
-                this.lastStableDetection = null;  // Last known stable detection position
+                // Detection state
+                this.isTracking = false;
+                this.targetImage = null;
+                this.templateWidth = 0;
+                this.templateHeight = 0;
                 
-                // === PERFORMANCE MONITORING ===
-                this.frameCount = 0;        // Frame counter for FPS calculation
-                this.lastFpsTime = Date.now();  // Last FPS calculation timestamp
+                // Settings - simplified for reliability
+                this.confidenceThreshold = 0.40; // Reasonable threshold
+                this.requiredFrames = 2; // Less strict requirement
+                this.consecutiveDetections = 0;
                 
-                // === DETECTION PARAMETERS ===
-                // These control how sensitive/strict the detection is
-                this.confidenceThreshold = 0.20;  // TEMPORARY: Very low threshold for debugging
-                this.skipFrames = 2;              // Process every 3rd frame (performance optimization)
-                this.currentFrame = 0;            // Current frame counter
+                // Performance
+                this.frameCount = 0;
+                this.lastFpsTime = Date.now();
                 
                 this.init();
             }
@@ -402,69 +227,12 @@
                     this.testDetection();
                 });
                 
-                // Add template debug button
-                const debugButton = document.createElement('button');
-                debugButton.textContent = 'Debug Template';
-                debugButton.style.cssText = 'background: rgba(255,255,255,0.9); border: none; padding: 10px 15px; border-radius: 5px; font-size: 12px; cursor: pointer; margin-bottom: 10px; display: block;';
-                debugButton.addEventListener('click', () => {
+                document.getElementById('debug-button').addEventListener('click', () => {
                     this.debugTemplate();
                 });
-                document.getElementById('controls').appendChild(debugButton);
                 
                 this.arContent = document.getElementById('ar-content');
                 this.arVideo = document.getElementById('ar-video');
-                
-                // Mobile console setup
-                this.mobileConsole = document.getElementById('mobile-console');
-                this.consoleVisible = false;
-                this.consoleMessages = [];
-                this.setupMobileConsole();
-            }
-
-            setupMobileConsole() {
-                // Intercept console.log for mobile display
-                const originalLog = console.log;
-                console.log = (...args) => {
-                    originalLog.apply(console, args);
-                    this.addToMobileConsole(args.join(' '));
-                };
-                
-                // Console toggle button
-                document.getElementById('console-button').addEventListener('click', () => {
-                    this.toggleMobileConsole();
-                });
-            }
-
-            addToMobileConsole(message) {
-                this.consoleMessages.push(message);
-                if (this.consoleMessages.length > 50) {
-                    this.consoleMessages.shift(); // Keep only last 50 messages
-                }
-                
-                if (this.consoleVisible) {
-                    this.updateMobileConsoleDisplay();
-                }
-            }
-
-            toggleMobileConsole() {
-                this.consoleVisible = !this.consoleVisible;
-                const consoleEl = document.getElementById('mobile-console');
-                const buttonEl = document.getElementById('console-button');
-                
-                if (this.consoleVisible) {
-                    consoleEl.style.display = 'block';
-                    buttonEl.textContent = 'Hide Console';
-                    this.updateMobileConsoleDisplay();
-                } else {
-                    consoleEl.style.display = 'none';
-                    buttonEl.textContent = 'Show Console';
-                }
-            }
-
-            updateMobileConsoleDisplay() {
-                const consoleEl = document.getElementById('mobile-console');
-                consoleEl.innerHTML = this.consoleMessages.slice(-20).join('<br>'); // Show last 20 messages
-                consoleEl.scrollTop = consoleEl.scrollHeight; // Auto-scroll to bottom
             }
 
             async startAR() {
@@ -483,121 +251,61 @@
                     this.video = document.getElementById('video-feed');
                     this.video.srcObject = stream;
                     
-                    // Setup processing canvas
+                    // Create processing canvas
                     this.canvas = document.createElement('canvas');
                     this.ctx = this.canvas.getContext('2d');
-                    
-                    // Setup debug canvas
-                    this.debugCanvas = document.getElementById('debug-canvas');
-                    this.debugCtx = this.debugCanvas.getContext('2d');
 
                     this.video.onloadedmetadata = () => {
-                        // Log actual video dimensions
-                        console.log(`📹 Video stream dimensions: ${this.video.videoWidth}x${this.video.videoHeight}`);
-                        console.log(`📹 Video aspect ratio: ${(this.video.videoWidth / this.video.videoHeight).toFixed(2)}`);
+                        console.log(`Video dimensions: ${this.video.videoWidth}x${this.video.videoHeight}`);
                         
-                        // Match processing canvas to video aspect ratio
-                        const videoAspect = this.video.videoWidth / this.video.videoHeight;
-                        
-                        if (videoAspect > 1) {
-                            // Landscape video (common on mobile)
-                            this.canvas.width = 320;
-                            this.canvas.height = Math.round(320 / videoAspect);
-                            console.log(`📐 Using landscape processing canvas: ${this.canvas.width}x${this.canvas.height}`);
-                        } else {
-                            // Portrait video
-                            this.canvas.height = 320;
-                            this.canvas.width = Math.round(320 * videoAspect);
-                            console.log(`📐 Using portrait processing canvas: ${this.canvas.width}x${this.canvas.height}`);
-                        }
-                        
-                        this.debugCanvas.width = Math.round(this.canvas.width / 2);
-                        this.debugCanvas.height = Math.round(this.canvas.height / 2);
-                        console.log(`🔍 Debug canvas: ${this.debugCanvas.width}x${this.debugCanvas.height}`);
+                        // Set canvas to reasonable processing size
+                        this.canvas.width = 320;
+                        this.canvas.height = 240;
                         
                         this.loadTargetImage();
                     };
 
                 } catch (error) {
-                    this.updateStatus('Camera access denied', 'error');
+                    this.updateStatus('Camera access denied');
                     console.error('Camera error:', error);
                 }
             }
 
-            /**
-             * STEP 1: Load and Process Target Image (paint1.jpg)
-             * 
-             * This function:
-             * 1. Loads paint1.jpg from the server
-             * 2. Scales it down to 80x107 pixels (portrait aspect ratio)  
-             * 3. Converts to ImageData for pixel-by-pixel comparison
-             * 4. Stores the processed image in this.targetImage
-             * 
-             * TROUBLESHOOTING: If detection fails, check:
-             * - Is paint1.jpg loading? Check browser network tab
-             * - Are there CORS errors? Image must be served from same domain
-             * - Is the aspect ratio correct? Original is 960x1280 (3:4 ratio)
-             */
             loadTargetImage() {
-                this.updateStatus('Loading target image...', 'searching');
-                console.log('🎯 Loading target image: paint1.jpg');
+                this.updateStatus('Loading target image...');
+                console.log('Loading paint1.jpg...');
                 
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
                 img.onload = () => {
-                    console.log('✅ Target image loaded successfully');
-                    console.log(`📐 Original dimensions: ${img.width}x${img.height}`);
+                    console.log(`Target image loaded: ${img.width}x${img.height}`);
                     
-                    // Create flexible target template based on original aspect ratio
-                    const imgAspect = img.width / img.height;  // 960/1280 = 0.75 (3:4 portrait)
-                    console.log(`🎨 Original image aspect ratio: ${imgAspect.toFixed(2)} (${img.width}x${img.height})`);
-                    
+                    // Create template - keep it simple
                     const targetCanvas = document.createElement('canvas');
                     const targetCtx = targetCanvas.getContext('2d');
                     
-                    // Make template size adaptive but reasonable for matching
-                    if (imgAspect > 1) {
-                        // Landscape original
-                        targetCanvas.width = 80;
-                        targetCanvas.height = Math.round(80 / imgAspect);
-                    } else {
-                        // Portrait original (like our paint1.jpg)
-                        targetCanvas.width = 60;  // Smaller width for portrait
-                        targetCanvas.height = Math.round(60 / imgAspect);  // 60/0.75 = 80
-                    }
+                    // Fixed template size for simplicity
+                    targetCanvas.width = 80;
+                    targetCanvas.height = 107; // Matches paint1.jpg aspect ratio
+                    targetCtx.drawImage(img, 0, 0, 80, 107);
                     
-                    targetCtx.drawImage(img, 0, 0, targetCanvas.width, targetCanvas.height);
-                    console.log(`🔄 Target template: ${targetCanvas.width}x${targetCanvas.height}`);
+                    this.targetImage = targetCtx.getImageData(0, 0, 80, 107);
+                    this.templateWidth = 80;
+                    this.templateHeight = 107;
                     
-                    this.targetImage = targetCtx.getImageData(0, 0, targetCanvas.width, targetCanvas.height);
-                    this.templateWidth = targetCanvas.width;
-                    this.templateHeight = targetCanvas.height;
-                    console.log(`💾 Target image data extracted: ${this.targetImage.data.length} bytes`);
+                    document.getElementById('template-status').textContent = `${this.templateWidth}x${this.templateHeight}`;
                     
-                    // DEBUG: Show sample pixels from target image
-                    const samplePixels = [];
-                    for (let i = 0; i < Math.min(10, this.targetImage.data.length); i += 4) {
-                        samplePixels.push(`[${this.targetImage.data[i]},${this.targetImage.data[i+1]},${this.targetImage.data[i+2]}]`);
-                    }
-                    console.log(`🎨 Target image sample pixels: ${samplePixels.join(', ')}`);
-                    
-                    // DEBUG: Check if target has sufficient color variance
-                    let colorSum = 0, colorCount = 0;
-                    for (let i = 0; i < this.targetImage.data.length; i += 4) {
-                        const intensity = (this.targetImage.data[i] + this.targetImage.data[i+1] + this.targetImage.data[i+2]) / 3;
-                        colorSum += Math.abs(intensity - 128);
-                        colorCount++;
-                    }
-                    const avgVariance = colorSum / colorCount;
-                    console.log(`🌈 Target image color variance: ${avgVariance.toFixed(2)} (need >10 for detection)`);
-                    
-                    this.updateStatus('Ready! Point camera at painting', 'searching');
+                    console.log('Template ready, starting detection...');
+                    this.updateStatus('Point camera at painting');
                     this.startTracking();
                 };
-                img.onerror = (error) => {
-                    console.error('❌ Failed to load target image:', error);
-                    this.updateStatus('Failed to load target image', 'error');
+                
+                img.onerror = () => {
+                    console.error('Failed to load paint1.jpg');
+                    this.updateStatus('Failed to load target image');
+                    document.getElementById('template-status').textContent = 'Failed';
                 };
+                
                 img.src = 'paint1.jpg';
             }
 
@@ -606,159 +314,52 @@
                 this.trackingLoop();
             }
 
-            /**
-             * STEP 2: Main Detection Loop
-             * 
-             * This runs continuously (at video framerate) and:
-             * 1. Captures current video frame to processing canvas
-             * 2. Runs template matching to find the target image
-             * 3. Smooths detection results over multiple frames
-             * 4. Shows/hides AR content based on detection confidence
-             * 
-             * PERFORMANCE: Only processes every 3rd frame (skipFrames=2)
-             * STABILITY: Requires 3 consecutive good detections before showing AR
-             * 
-             * TROUBLESHOOTING: Watch console logs for:
-             * - Frame processing rate (should be ~10-15 FPS)
-             * - Detection confidence values (need >65% to trigger)
-             * - Position stability (jumps >80px are rejected)
-             */
             trackingLoop() {
                 if (!this.isTracking) return;
 
-                this.currentFrame++;
-                // PERFORMANCE OPTIMIZATION: Skip frames to reduce CPU load
-                if (this.currentFrame % (this.skipFrames + 1) !== 0) {
-                    requestAnimationFrame(() => this.trackingLoop());
-                    return;
-                }
-
                 try {
-                    // STEP 2A: Capture current video frame to processing canvas (320x240)
+                    // Capture video frame
                     this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
-                    
-                    // STEP 2B: Show debug view (what the detection algorithm sees)
-                    this.debugCtx.drawImage(this.canvas, 0, 0, this.debugCanvas.width, this.debugCanvas.height);
-                    
-                    // STEP 2C: Get pixel data from processing canvas
                     const frameData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
                     
-                    // DEBUG: Show sample pixels from current frame (every 30 frames to avoid spam)
-                    if (this.currentFrame % 30 === 0) {
-                        const frameSamples = [];
-                        for (let i = 0; i < Math.min(10, frameData.data.length); i += 4) {
-                            frameSamples.push(`[${frameData.data[i]},${frameData.data[i+1]},${frameData.data[i+2]}]`);
-                        }
-                        console.log(`📹 Frame sample pixels: ${frameSamples.join(', ')}`);
-                        
-                        // Check if frame is mostly black (camera issue)
-                        let blackPixels = 0;
-                        for (let i = 0; i < frameData.data.length; i += 4) {
-                            const intensity = frameData.data[i] + frameData.data[i+1] + frameData.data[i+2];
-                            if (intensity < 30) blackPixels++;
-                        }
-                        const blackPercent = (blackPixels / (frameData.data.length / 4)) * 100;
-                        console.log(`🖤 Frame black pixels: ${blackPercent.toFixed(1)}% (>90% indicates camera issue)`);
-                    }
-                    
-                    // STEP 2D: Run template matching algorithm
+                    // Simple template matching
                     const detection = this.detectImage(frameData);
-                    console.log(`🔍 Detection result: confidence=${Math.round(detection.confidence * 100)}% at (${Math.round(detection.x)},${Math.round(detection.y)})`);
                     
-                    // STEP 2E: Add to smoothing history
-                    this.updateDetectionHistory(detection);
+                    // Update debug display
+                    document.getElementById('confidence').textContent = Math.round(detection.confidence * 100) + '%';
+                    document.getElementById('position').textContent = `${Math.round(detection.x)},${Math.round(detection.y)}`;
                     
-                    // STEP 2F: Calculate smoothed/averaged detection
-                    const avgDetection = this.getSmoothedDetection();
-                    
-                    if (avgDetection.confidence > this.confidenceThreshold) {
-                        console.log(`✅ Detection above threshold (${Math.round(avgDetection.confidence * 100)}% > ${Math.round(this.confidenceThreshold * 100)}%)`);
-                        
-                        // STABILITY CHECK: Reject if detection jumps around too much
-                        if (this.lastStableDetection) {
-                            const positionChange = Math.abs(avgDetection.x - this.lastStableDetection.x) + 
-                                                 Math.abs(avgDetection.y - this.lastStableDetection.y);
-                            if (positionChange > 80) { // Allow more movement for handheld devices
-                                console.log(`⚠️ Position jump too large: ${Math.round(positionChange)}px > 80px - reducing consecutive count`);
-                                this.consecutiveDetections = Math.max(0, this.consecutiveDetections - 1);
-                                requestAnimationFrame(() => this.trackingLoop());
-                                return;
-                            }
-                        }
-                        
+                    if (detection.confidence > this.confidenceThreshold) {
                         this.consecutiveDetections++;
-                        this.lastStableDetection = avgDetection;
-                        console.log(`📊 Consecutive detections: ${this.consecutiveDetections}/${this.requiredConsecutive}`);
+                        console.log(`Detection ${this.consecutiveDetections}/${this.requiredFrames}: ${Math.round(detection.confidence * 100)}%`);
                         
-                        if (this.consecutiveDetections >= this.requiredConsecutive) {
-                            this.onImageDetected(avgDetection);
+                        if (this.consecutiveDetections >= this.requiredFrames) {
+                            this.onImageDetected(detection);
                         }
                     } else {
-                        if (avgDetection.confidence > 0) {
-                            console.log(`❌ Detection below threshold (${Math.round(avgDetection.confidence * 100)}% < ${Math.round(this.confidenceThreshold * 100)}%)`);
-                        }
                         this.consecutiveDetections = 0;
-                        this.lastStableDetection = null;
                         this.onImageLost();
                     }
                     
                     this.updateFPS();
-                    this.updateDebugInfo(avgDetection);
                     
                 } catch (error) {
-                    console.error('❌ Tracking loop error:', error);
+                    console.error('Tracking error:', error);
                 }
 
                 requestAnimationFrame(() => this.trackingLoop());
             }
 
-            /**
-             * STEP 3: Multi-Scale Template Matching
-             * 
-             * This tries to find the target image at different sizes in the video frame:
-             * 1. Tests 5 different scales (0.6x to 1.4x) to handle distance variations
-             * 2. For each scale, runs pixel-by-pixel template matching
-             * 3. Validates results to avoid false positives (size/aspect ratio checks)
-             * 4. Returns the best match across all scales
-             * 
-             * TROUBLESHOOTING:
-             * - Low confidence? Image might be too small/large (outside 0.6-1.4x range)
-             * - False positives? Size validation rejects matches outside 150-800px screen size
-             * - Aspect ratio validation rejects matches that aren't roughly rectangular
-             */
             detectImage(frameData) {
-                let bestMatch = { confidence: 0, x: 0, y: 0, scale: 1 };
+                let bestMatch = { confidence: 0, x: 0, y: 0 };
                 
-                // Multi-scale detection - try different sizes of the target image
-                const scales = [0.6, 0.8, 1.0, 1.2, 1.4];
-                console.log(`🔍 Testing ${scales.length} scales: ${scales.join(', ')}`);
+                // Test multiple scales
+                const scales = [0.8, 1.0, 1.2];
                 
                 for (const scale of scales) {
                     const match = this.templateMatch(frameData, scale);
-                    
-                    // VALIDATION: Check if detected size makes sense on screen
-                    const minScreenSize = 100; // pixels - too small = likely false positive (lowered for mobile)
-                    const maxScreenSize = 800; // pixels - too large = likely false positive
-                    const screenW = (match.width || this.templateWidth) * (window.innerWidth / this.canvas.width);
-                    const screenH = (match.height || this.templateHeight) * (window.innerHeight / this.canvas.height);
-                    const aspectRatio = screenW / screenH;
-                    
-                    // Log every scale result, even 0% confidence
-                    if (match.confidence === 0) {
-                        console.log(`📏 Scale ${scale}: NO MATCH FOUND (0% confidence) - template size=${match.width}x${match.height}`);
-                    } else {
-                        console.log(`📏 Scale ${scale}: confidence=${Math.round(match.confidence * 100)}%, screen size=${Math.round(screenW)}x${Math.round(screenH)}px, aspect=${aspectRatio.toFixed(2)}`);
-                    }
-                    
-                    // Only accept reasonably sized rectangles with proper aspect ratio
-                    if (match.confidence > bestMatch.confidence && 
-                        screenW > minScreenSize && screenW < maxScreenSize &&
-                        screenH > minScreenSize && screenH < maxScreenSize &&
-                        aspectRatio > 0.8 && aspectRatio < 2.0) {
-                        console.log(`✅ New best match at scale ${scale}`);
-                        bestMatch = { ...match, scale };
-                    } else if (match.confidence > bestMatch.confidence) {
-                        console.log(`❌ High confidence match rejected: size=${Math.round(screenW)}x${Math.round(screenH)}, aspect=${aspectRatio.toFixed(2)}`);
+                    if (match.confidence > bestMatch.confidence) {
+                        bestMatch = match;
                     }
                 }
                 
@@ -766,31 +367,18 @@
             }
 
             templateMatch(frameData, scale) {
-                const targetW = Math.floor(this.templateWidth * scale);
-                const targetH = Math.floor(this.templateHeight * scale);
-                const step = Math.max(4, Math.floor(8 / scale));
-                
-                console.log(`🔍 Template matching at scale ${scale}: template=${targetW}x${targetH}, step=${step}`);
-                console.log(`📐 Search area: ${frameData.width}x${frameData.height}, positions to test: ${Math.floor((frameData.width-targetW)/step) * Math.floor((frameData.height-targetH)/step)}`);
+                const templateW = Math.floor(this.templateWidth * scale);
+                const templateH = Math.floor(this.templateHeight * scale);
+                const step = 8; // Skip pixels for speed
                 
                 let bestScore = 0;
                 let bestX = 0;
                 let bestY = 0;
-                let positionsChecked = 0;
-                let scoresAboveZero = 0;
                 
-                for (let y = 0; y <= frameData.height - targetH; y += step) {
-                    for (let x = 0; x <= frameData.width - targetW; x += step) {
-                        const score = this.calculateMatch(frameData, x, y, targetW, targetH);
-                        positionsChecked++;
-                        
-                        if (score > 0) {
-                            scoresAboveZero++;
-                            if (scoresAboveZero <= 5) { // Log first 5 non-zero scores for debugging
-                                console.log(`💡 Non-zero score at (${x},${y}): ${(score * 100).toFixed(1)}%`);
-                            }
-                        }
-                        
+                // Search across the frame
+                for (let y = 0; y <= frameData.height - templateH; y += step) {
+                    for (let x = 0; x <= frameData.width - templateW; x += step) {
+                        const score = this.calculateMatch(frameData, x, y, templateW, templateH);
                         if (score > bestScore) {
                             bestScore = score;
                             bestX = x;
@@ -799,28 +387,19 @@
                     }
                 }
                 
-                console.log(`📊 Scale ${scale} results: checked ${positionsChecked} positions, ${scoresAboveZero} had score >0, best: ${(bestScore * 100).toFixed(1)}% at (${bestX},${bestY})`);
-                
                 return {
                     confidence: bestScore,
                     x: bestX,
                     y: bestY,
-                    width: targetW,
-                    height: targetH
+                    width: templateW,
+                    height: templateH
                 };
             }
 
             calculateMatch(frameData, startX, startY, width, height) {
                 let score = 0;
                 let samples = 0;
-                const step = 2; // Finer sampling for better accuracy
-                let colorVariance = 0;
-                let edgeScore = 0;
-                let validPixels = 0;
-                let targetAccessErrors = 0;
-                
-                // Debug first few pixels for troubleshooting
-                let debugPixels = [];
+                const step = 2;
                 
                 for (let y = 0; y < height; y += step) {
                     for (let x = 0; x < width; x += step) {
@@ -830,234 +409,106 @@
                         if (frameX < frameData.width && frameY < frameData.height) {
                             const frameIdx = (frameY * frameData.width + frameX) * 4;
                             
-                            const targetX = Math.floor((x / width) * this.templateWidth);
-                            const targetY = Math.floor((y / height) * this.templateHeight);
-                            const targetIdx = (targetY * this.templateWidth + targetX) * 4;
+                            // Map to template coordinates
+                            const templateX = Math.floor((x / width) * this.templateWidth);
+                            const templateY = Math.floor((y / height) * this.templateHeight);
+                            const templateIdx = (templateY * this.templateWidth + templateX) * 4;
                             
-                            if (targetIdx < this.targetImage.data.length && targetX < this.templateWidth && targetY < this.templateHeight) {
-                                validPixels++;
-                                
-                                // Enhanced RGB comparison with weighted channels
-                                let diff = 0;
+                            if (templateIdx < this.targetImage.data.length) {
+                                // Simple RGB difference
                                 const frameR = frameData.data[frameIdx];
                                 const frameG = frameData.data[frameIdx + 1];
                                 const frameB = frameData.data[frameIdx + 2];
-                                const targetR = this.targetImage.data[targetIdx];
-                                const targetG = this.targetImage.data[targetIdx + 1];
-                                const targetB = this.targetImage.data[targetIdx + 2];
+                                const templateR = this.targetImage.data[templateIdx];
+                                const templateG = this.targetImage.data[templateIdx + 1];
+                                const templateB = this.targetImage.data[templateIdx + 2];
                                 
-                                // Debug first few comparisons
-                                if (debugPixels.length < 3) {
-                                    debugPixels.push({
-                                        pos: `(${targetX},${targetY})`,
-                                        frame: `[${frameR},${frameG},${frameB}]`,
-                                        target: `[${targetR},${targetG},${targetB}]`
-                                    });
-                                }
+                                const diff = Math.abs(frameR - templateR) + 
+                                           Math.abs(frameG - templateG) + 
+                                           Math.abs(frameB - templateB);
                                 
-                                // Weighted RGB difference (human eye sensitivity)
-                                diff = Math.abs(frameR - targetR) * 0.3 + 
-                                       Math.abs(frameG - targetG) * 0.59 + 
-                                       Math.abs(frameB - targetB) * 0.11;
-                                
-                                const pixelScore = Math.max(0, 255 - diff) / 255;
+                                const pixelScore = Math.max(0, (765 - diff) / 765); // 765 = 255*3
                                 score += pixelScore;
-                                
-                                // Track color variance for uniqueness
-                                const intensity = (frameR + frameG + frameB) / 3;
-                                colorVariance += Math.abs(intensity - 128); // Distance from gray
-                                
                                 samples++;
-                            } else {
-                                targetAccessErrors++;
                             }
                         }
                     }
                 }
                 
-                // Debug logging for problematic matches
-                if (samples === 0 || targetAccessErrors > 10) {
-                    console.log(`🚫 Match calculation failed at (${startX},${startY}): samples=${samples}, validPixels=${validPixels}, targetErrors=${targetAccessErrors}`);
-                    console.log(`📏 Template: ${this.templateWidth}x${this.templateHeight}, match area: ${width}x${height}`);
-                    if (debugPixels.length > 0) {
-                        console.log(`🎨 Sample pixels: ${debugPixels.map(p => `${p.pos}:${p.frame}→${p.target}`).join(', ')}`);
-                    }
-                }
-                
-                if (samples === 0) return 0;
-                
-                const baseScore = score / samples;
-                const varianceBonus = Math.min(0.2, colorVariance / (samples * 100)); // Bonus for colorful images
-                
-                // Require some color variance but be less strict
-                const minVariance = 5; // Even lower minimum color variance
-                const avgVariance = colorVariance / samples;
-                
-                if (avgVariance < minVariance) {
-                    return baseScore * 0.5; // Less harsh penalty for uniform areas
-                }
-                
-                return Math.min(1, baseScore + varianceBonus);
-            }
-
-            updateDetectionHistory(detection) {
-                this.detectionHistory.push(detection);
-                if (this.detectionHistory.length > 8) {
-                    this.detectionHistory.shift();
-                }
-            }
-
-            getSmoothedDetection() {
-                if (this.detectionHistory.length === 0) return { confidence: 0, x: 0, y: 0 };
-                
-                let totalConfidence = 0;
-                let totalX = 0;
-                let totalY = 0;
-                let totalScale = 0;
-                let count = 0;
-                
-                // Weighted average, giving more weight to recent detections
-                for (let i = 0; i < this.detectionHistory.length; i++) {
-                    const weight = (i + 1) / this.detectionHistory.length; // More recent = higher weight
-                    const detection = this.detectionHistory[i];
-                    
-                    totalConfidence += detection.confidence * weight;
-                    totalX += detection.x * weight;
-                    totalY += detection.y * weight;
-                    totalScale += (detection.scale || 1) * weight;
-                    count += weight;
-                }
-                
-                return {
-                    confidence: totalConfidence / count,
-                    x: totalX / count,
-                    y: totalY / count,
-                    scale: totalScale / count,
-                    width: this.detectionHistory[this.detectionHistory.length - 1].width,
-                    height: this.detectionHistory[this.detectionHistory.length - 1].height
-                };
+                return samples > 0 ? score / samples : 0;
             }
 
             onImageDetected(detection) {
-                this.updateStatus('🎯 Tracking painting...', 'tracking');
-                this.lastDetection = Date.now();
+                this.updateStatus('🎯 Image detected! Playing AR content');
                 
-                // Get video element dimensions for proper scaling
+                // Position AR content
                 const videoRect = this.video.getBoundingClientRect();
-                const canvasToVideoX = videoRect.width / this.canvas.width;
-                const canvasToVideoY = videoRect.height / this.canvas.height;
+                const scaleX = videoRect.width / this.canvas.width;
+                const scaleY = videoRect.height / this.canvas.height;
                 
-                // Convert detection coordinates to video overlay coordinates
-                const overlayX = detection.x * canvasToVideoX;
-                const overlayY = detection.y * canvasToVideoY;
-                const overlayW = detection.width * canvasToVideoX;
-                const overlayH = detection.height * canvasToVideoY;
+                const x = detection.x * scaleX;
+                const y = detection.y * scaleY;
+                const w = detection.width * scaleX;
+                const h = detection.height * scaleY;
                 
-                // Position AR video directly over the detected area
-                this.arContent.style.left = overlayX + 'px';
-                this.arContent.style.top = overlayY + 'px';
+                this.arContent.style.left = x + 'px';
+                this.arContent.style.top = y + 'px';
                 this.arContent.style.display = 'block';
                 
-                // Scale video to match detected image size
-                const videoWidth = Math.max(200, overlayW);
-                const videoHeight = Math.max(150, overlayH);
-                this.arVideo.style.width = videoWidth + 'px';
-                this.arVideo.style.height = videoHeight + 'px';
+                this.arVideo.style.width = Math.max(200, w) + 'px';
+                this.arVideo.style.height = Math.max(150, h) + 'px';
                 
-                // Play video
                 if (this.arVideo.paused) {
                     this.arVideo.play().catch(e => console.log('Video play failed:', e));
                 }
             }
 
             onImageLost() {
-                if (Date.now() - (this.lastDetection || 0) > 2000) { // 2 second grace period for stability
-                    this.updateStatus('📱 Searching for painting...', 'searching');
-                    
-                    this.arContent.style.display = 'none';
-                    
-                    if (!this.arVideo.paused) {
-                        this.arVideo.pause();
-                    }
+                this.updateStatus('Searching for painting...');
+                this.arContent.style.display = 'none';
+                if (!this.arVideo.paused) {
+                    this.arVideo.pause();
                 }
-            }
-
-            debugTemplate() {
-                console.log('=== TEMPLATE DEBUG ===');
-                console.log(`Template loaded: ${!!this.targetImage}`);
-                console.log(`Template dimensions: ${this.templateWidth}x${this.templateHeight}`);
-                console.log(`Template data length: ${this.targetImage ? this.targetImage.data.length : 'N/A'}`);
-                
-                if (this.targetImage) {
-                    // Sample first 10 pixels
-                    const samples = [];
-                    for (let i = 0; i < Math.min(40, this.targetImage.data.length); i += 4) {
-                        samples.push(`[${this.targetImage.data[i]},${this.targetImage.data[i+1]},${this.targetImage.data[i+2]}]`);
-                    }
-                    console.log(`First 10 pixels: ${samples.join(', ')}`);
-                    
-                    // Test template matching with itself (should be 100% match)
-                    if (this.canvas && this.ctx) {
-                        // Draw template to canvas for self-test
-                        const testCanvas = document.createElement('canvas');
-                        testCanvas.width = this.templateWidth;
-                        testCanvas.height = this.templateHeight;
-                        const testCtx = testCanvas.getContext('2d');
-                        
-                        const imageData = testCtx.createImageData(this.templateWidth, this.templateHeight);
-                        imageData.data.set(this.targetImage.data);
-                        testCtx.putImageData(imageData, 0, 0);
-                        
-                        // Test match template against itself
-                        const selfMatch = this.calculateMatch(this.targetImage, 0, 0, this.templateWidth, this.templateHeight);
-                        console.log(`🔍 Template self-match score: ${(selfMatch * 100).toFixed(1)}% (should be ~100%)`);
-                    }
-                }
-                
-                // Check current frame
-                if (this.canvas && this.ctx) {
-                    const frameData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-                    console.log(`Current frame: ${this.canvas.width}x${this.canvas.height}`);
-                    const frameSamples = [];
-                    for (let i = 0; i < Math.min(40, frameData.data.length); i += 4) {
-                        frameSamples.push(`[${frameData.data[i]},${frameData.data[i+1]},${frameData.data[i+2]}]`);
-                    }
-                    console.log(`Frame first 10 pixels: ${frameSamples.join(', ')}`);
-                }
-                console.log('=== END DEBUG ===');
             }
 
             testDetection() {
-                // Simulate detection in center of screen
                 const mockDetection = {
                     confidence: 0.8,
                     x: this.canvas.width / 2 - 40,
                     y: this.canvas.height / 2 - 30,
                     width: 80,
-                    height: 60,
-                    scale: 1.0
+                    height: 107
                 };
                 
-                this.detectionHistory = [mockDetection];
+                console.log('Testing AR overlay positioning...');
                 this.onImageDetected(mockDetection);
                 
-                // Auto-hide after 8 seconds
                 setTimeout(() => {
-                    this.lastDetection = 0;
                     this.onImageLost();
-                }, 8000);
+                }, 5000);
             }
 
-            updateStatus(message, type) {
-                document.getElementById('status-text').textContent = message;
-                document.getElementById('status').className = type;
+            debugTemplate() {
+                console.log('=== TEMPLATE DEBUG ===');
+                console.log(`Template loaded: ${!!this.targetImage}`);
+                console.log(`Dimensions: ${this.templateWidth}x${this.templateHeight}`);
+                
+                if (this.targetImage) {
+                    console.log(`Data length: ${this.targetImage.data.length}`);
+                    
+                    // Show first few pixels
+                    const samples = [];
+                    for (let i = 0; i < Math.min(20, this.targetImage.data.length); i += 4) {
+                        samples.push(`[${this.targetImage.data[i]},${this.targetImage.data[i+1]},${this.targetImage.data[i+2]}]`);
+                    }
+                    console.log(`First 5 pixels: ${samples.join(', ')}`);
+                }
+                console.log('=== END DEBUG ===');
             }
 
-            updateDebugInfo(detection) {
-                document.getElementById('confidence').textContent = 
-                    `Confidence: ${Math.round(detection.confidence * 100)}%`;
-                document.getElementById('position').textContent = 
-                    `Position: ${Math.round(detection.x)}, ${Math.round(detection.y)}`;
+            updateStatus(message) {
+                document.getElementById('status').textContent = message;
+                console.log('Status:', message);
             }
 
             updateFPS() {
@@ -1065,16 +516,16 @@
                 const now = Date.now();
                 if (now - this.lastFpsTime >= 1000) {
                     const fps = Math.round(this.frameCount * 1000 / (now - this.lastFpsTime));
-                    document.getElementById('fps').textContent = `FPS: ${fps}`;
+                    document.getElementById('fps').textContent = fps;
                     this.frameCount = 0;
                     this.lastFpsTime = now;
                 }
             }
         }
 
-        // Initialize
+        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            new ImageTracker();
+            new SimpleARTracker();
         });
     </script>
 </body>
