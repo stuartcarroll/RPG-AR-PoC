@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>v1.3 - RPG AR Experience - Image Tracking</title>
+    <title>v1.4 - RPG AR Experience - Image Tracking</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -271,6 +271,24 @@
             border-radius: 5px;
             font-size: 12px;
             cursor: pointer;
+            margin-bottom: 10px;
+        }
+        
+        #mobile-console {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 300px;
+            height: 200px;
+            background: rgba(0,0,0,0.8);
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 10px;
+            padding: 10px;
+            overflow-y: auto;
+            border-radius: 5px;
+            z-index: 200;
+            display: none;
         }
     </style>
 </head>
@@ -279,7 +297,7 @@
         <div class="container">
             <header class="main-header">
                 <h1>RPG AR Experience</h1>
-                <p class="subtitle">Advanced Image Detection - v1.3</p>
+                <p class="subtitle">Advanced Image Detection - v1.4</p>
             </header>
             
             <main class="artwork-grid">
@@ -323,7 +341,10 @@
         
         <div id="controls">
             <button id="test-button">Test Detection</button>
+            <button id="console-button">Show Console</button>
         </div>
+        
+        <div id="mobile-console"></div>
 
         <img id="target-img" src="paint1.jpg" alt="Target">
     </div>
@@ -383,6 +404,58 @@
                 
                 this.arContent = document.getElementById('ar-content');
                 this.arVideo = document.getElementById('ar-video');
+                
+                // Mobile console setup
+                this.mobileConsole = document.getElementById('mobile-console');
+                this.consoleVisible = false;
+                this.consoleMessages = [];
+                this.setupMobileConsole();
+            }
+
+            setupMobileConsole() {
+                // Intercept console.log for mobile display
+                const originalLog = console.log;
+                console.log = (...args) => {
+                    originalLog.apply(console, args);
+                    this.addToMobileConsole(args.join(' '));
+                };
+                
+                // Console toggle button
+                document.getElementById('console-button').addEventListener('click', () => {
+                    this.toggleMobileConsole();
+                });
+            }
+
+            addToMobileConsole(message) {
+                this.consoleMessages.push(message);
+                if (this.consoleMessages.length > 50) {
+                    this.consoleMessages.shift(); // Keep only last 50 messages
+                }
+                
+                if (this.consoleVisible) {
+                    this.updateMobileConsoleDisplay();
+                }
+            }
+
+            toggleMobileConsole() {
+                this.consoleVisible = !this.consoleVisible;
+                const consoleEl = document.getElementById('mobile-console');
+                const buttonEl = document.getElementById('console-button');
+                
+                if (this.consoleVisible) {
+                    consoleEl.style.display = 'block';
+                    buttonEl.textContent = 'Hide Console';
+                    this.updateMobileConsoleDisplay();
+                } else {
+                    consoleEl.style.display = 'none';
+                    buttonEl.textContent = 'Show Console';
+                }
+            }
+
+            updateMobileConsoleDisplay() {
+                const consoleEl = document.getElementById('mobile-console');
+                consoleEl.innerHTML = this.consoleMessages.slice(-20).join('<br>'); // Show last 20 messages
+                consoleEl.scrollTop = consoleEl.scrollHeight; // Auto-scroll to bottom
             }
 
             async startAR() {
@@ -410,11 +483,28 @@
                     this.debugCtx = this.debugCanvas.getContext('2d');
 
                     this.video.onloadedmetadata = () => {
-                        this.canvas.width = 320;
-                        this.canvas.height = 240;
+                        // Log actual video dimensions
+                        console.log(`📹 Video stream dimensions: ${this.video.videoWidth}x${this.video.videoHeight}`);
+                        console.log(`📹 Video aspect ratio: ${(this.video.videoWidth / this.video.videoHeight).toFixed(2)}`);
                         
-                        this.debugCanvas.width = 160;
-                        this.debugCanvas.height = 120;
+                        // Match processing canvas to video aspect ratio
+                        const videoAspect = this.video.videoWidth / this.video.videoHeight;
+                        
+                        if (videoAspect > 1) {
+                            // Landscape video (common on mobile)
+                            this.canvas.width = 320;
+                            this.canvas.height = Math.round(320 / videoAspect);
+                            console.log(`📐 Using landscape processing canvas: ${this.canvas.width}x${this.canvas.height}`);
+                        } else {
+                            // Portrait video
+                            this.canvas.height = 320;
+                            this.canvas.width = Math.round(320 * videoAspect);
+                            console.log(`📐 Using portrait processing canvas: ${this.canvas.width}x${this.canvas.height}`);
+                        }
+                        
+                        this.debugCanvas.width = Math.round(this.canvas.width / 2);
+                        this.debugCanvas.height = Math.round(this.canvas.height / 2);
+                        console.log(`🔍 Debug canvas: ${this.debugCanvas.width}x${this.debugCanvas.height}`);
                         
                         this.loadTargetImage();
                     };
@@ -449,16 +539,30 @@
                     console.log('✅ Target image loaded successfully');
                     console.log(`📐 Original dimensions: ${img.width}x${img.height}`);
                     
-                    // Create standardized target maintaining aspect ratio
+                    // Create flexible target template based on original aspect ratio
+                    const imgAspect = img.width / img.height;  // 960/1280 = 0.75 (3:4 portrait)
+                    console.log(`🎨 Original image aspect ratio: ${imgAspect.toFixed(2)} (${img.width}x${img.height})`);
+                    
                     const targetCanvas = document.createElement('canvas');
                     const targetCtx = targetCanvas.getContext('2d');
-                    targetCanvas.width = 80;
-                    targetCanvas.height = 107; // Maintain portrait aspect ratio (960:1280 ≈ 3:4)
-                    targetCtx.drawImage(img, 0, 0, 80, 107);
                     
-                    console.log('🔄 Target image scaled to 80x107 for template matching');
+                    // Make template size adaptive but reasonable for matching
+                    if (imgAspect > 1) {
+                        // Landscape original
+                        targetCanvas.width = 80;
+                        targetCanvas.height = Math.round(80 / imgAspect);
+                    } else {
+                        // Portrait original (like our paint1.jpg)
+                        targetCanvas.width = 60;  // Smaller width for portrait
+                        targetCanvas.height = Math.round(60 / imgAspect);  // 60/0.75 = 80
+                    }
                     
-                    this.targetImage = targetCtx.getImageData(0, 0, 80, 107);
+                    targetCtx.drawImage(img, 0, 0, targetCanvas.width, targetCanvas.height);
+                    console.log(`🔄 Target template: ${targetCanvas.width}x${targetCanvas.height}`);
+                    
+                    this.targetImage = targetCtx.getImageData(0, 0, targetCanvas.width, targetCanvas.height);
+                    this.templateWidth = targetCanvas.width;
+                    this.templateHeight = targetCanvas.height;
                     console.log(`💾 Target image data extracted: ${this.targetImage.data.length} bytes`);
                     
                     // DEBUG: Show sample pixels from target image
@@ -624,10 +728,10 @@
                     const match = this.templateMatch(frameData, scale);
                     
                     // VALIDATION: Check if detected size makes sense on screen
-                    const minScreenSize = 150; // pixels - too small = likely false positive
+                    const minScreenSize = 100; // pixels - too small = likely false positive (lowered for mobile)
                     const maxScreenSize = 800; // pixels - too large = likely false positive
-                    const screenW = (match.width || 80) * (window.innerWidth / this.canvas.width);
-                    const screenH = (match.height || 107) * (window.innerHeight / this.canvas.height);
+                    const screenW = (match.width || this.templateWidth) * (window.innerWidth / this.canvas.width);
+                    const screenH = (match.height || this.templateHeight) * (window.innerHeight / this.canvas.height);
                     const aspectRatio = screenW / screenH;
                     
                     // Log every scale result, even 0% confidence
@@ -653,8 +757,8 @@
             }
 
             templateMatch(frameData, scale) {
-                const targetW = Math.floor(80 * scale);
-                const targetH = Math.floor(107 * scale);
+                const targetW = Math.floor(this.templateWidth * scale);
+                const targetH = Math.floor(this.templateHeight * scale);
                 const step = Math.max(4, Math.floor(8 / scale));
                 
                 let bestScore = 0;
@@ -696,9 +800,9 @@
                         if (frameX < frameData.width && frameY < frameData.height) {
                             const frameIdx = (frameY * frameData.width + frameX) * 4;
                             
-                            const targetX = Math.floor((x / width) * 80);
-                            const targetY = Math.floor((y / height) * 107);
-                            const targetIdx = (targetY * 80 + targetX) * 4;
+                            const targetX = Math.floor((x / width) * this.templateWidth);
+                            const targetY = Math.floor((y / height) * this.templateHeight);
+                            const targetIdx = (targetY * this.templateWidth + targetX) * 4;
                             
                             if (targetIdx < this.targetImage.data.length) {
                                 // Enhanced RGB comparison with weighted channels
