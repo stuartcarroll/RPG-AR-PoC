@@ -239,7 +239,13 @@
         }
 
         #debug-canvas {
-            display: none;
+            display: block;
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            border: 2px solid red;
+            z-index: 100;
+            background: rgba(255,255,255,0.9);
         }
 
         #target-img {
@@ -359,7 +365,7 @@
                 
                 // === DETECTION PARAMETERS ===
                 // These control how sensitive/strict the detection is
-                this.confidenceThreshold = 0.65;  // Minimum match confidence (0-1, higher = stricter)
+                this.confidenceThreshold = 0.20;  // TEMPORARY: Very low threshold for debugging
                 this.skipFrames = 2;              // Process every 3rd frame (performance optimization)
                 this.currentFrame = 0;            // Current frame counter
                 
@@ -455,6 +461,23 @@
                     this.targetImage = targetCtx.getImageData(0, 0, 80, 107);
                     console.log(`💾 Target image data extracted: ${this.targetImage.data.length} bytes`);
                     
+                    // DEBUG: Show sample pixels from target image
+                    const samplePixels = [];
+                    for (let i = 0; i < Math.min(10, this.targetImage.data.length); i += 4) {
+                        samplePixels.push(`[${this.targetImage.data[i]},${this.targetImage.data[i+1]},${this.targetImage.data[i+2]}]`);
+                    }
+                    console.log(`🎨 Target image sample pixels: ${samplePixels.join(', ')}`);
+                    
+                    // DEBUG: Check if target has sufficient color variance
+                    let colorSum = 0, colorCount = 0;
+                    for (let i = 0; i < this.targetImage.data.length; i += 4) {
+                        const intensity = (this.targetImage.data[i] + this.targetImage.data[i+1] + this.targetImage.data[i+2]) / 3;
+                        colorSum += Math.abs(intensity - 128);
+                        colorCount++;
+                    }
+                    const avgVariance = colorSum / colorCount;
+                    console.log(`🌈 Target image color variance: ${avgVariance.toFixed(2)} (need >10 for detection)`);
+                    
                     this.updateStatus('Ready! Point camera at painting', 'searching');
                     this.startTracking();
                 };
@@ -506,6 +529,24 @@
                     
                     // STEP 2C: Get pixel data from processing canvas
                     const frameData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                    
+                    // DEBUG: Show sample pixels from current frame (every 30 frames to avoid spam)
+                    if (this.currentFrame % 30 === 0) {
+                        const frameSamples = [];
+                        for (let i = 0; i < Math.min(10, frameData.data.length); i += 4) {
+                            frameSamples.push(`[${frameData.data[i]},${frameData.data[i+1]},${frameData.data[i+2]}]`);
+                        }
+                        console.log(`📹 Frame sample pixels: ${frameSamples.join(', ')}`);
+                        
+                        // Check if frame is mostly black (camera issue)
+                        let blackPixels = 0;
+                        for (let i = 0; i < frameData.data.length; i += 4) {
+                            const intensity = frameData.data[i] + frameData.data[i+1] + frameData.data[i+2];
+                            if (intensity < 30) blackPixels++;
+                        }
+                        const blackPercent = (blackPixels / (frameData.data.length / 4)) * 100;
+                        console.log(`🖤 Frame black pixels: ${blackPercent.toFixed(1)}% (>90% indicates camera issue)`);
+                    }
                     
                     // STEP 2D: Run template matching algorithm
                     const detection = this.detectImage(frameData);
@@ -589,7 +630,12 @@
                     const screenH = (match.height || 107) * (window.innerHeight / this.canvas.height);
                     const aspectRatio = screenW / screenH;
                     
-                    console.log(`📏 Scale ${scale}: confidence=${Math.round(match.confidence * 100)}%, screen size=${Math.round(screenW)}x${Math.round(screenH)}px, aspect=${aspectRatio.toFixed(2)}`);
+                    // Log every scale result, even 0% confidence
+                    if (match.confidence === 0) {
+                        console.log(`📏 Scale ${scale}: NO MATCH FOUND (0% confidence) - template size=${match.width}x${match.height}`);
+                    } else {
+                        console.log(`📏 Scale ${scale}: confidence=${Math.round(match.confidence * 100)}%, screen size=${Math.round(screenW)}x${Math.round(screenH)}px, aspect=${aspectRatio.toFixed(2)}`);
+                    }
                     
                     // Only accept reasonably sized rectangles with proper aspect ratio
                     if (match.confidence > bestMatch.confidence && 
