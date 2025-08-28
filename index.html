@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>v1.4 - RPG AR Experience - Image Tracking</title>
+    <title>v1.5 - RPG AR Experience - Image Tracking</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -297,7 +297,7 @@
         <div class="container">
             <header class="main-header">
                 <h1>RPG AR Experience</h1>
-                <p class="subtitle">Advanced Image Detection - v1.4</p>
+                <p class="subtitle">Advanced Image Detection - v1.5</p>
             </header>
             
             <main class="artwork-grid">
@@ -401,6 +401,15 @@
                 document.getElementById('test-button').addEventListener('click', () => {
                     this.testDetection();
                 });
+                
+                // Add template debug button
+                const debugButton = document.createElement('button');
+                debugButton.textContent = 'Debug Template';
+                debugButton.style.cssText = 'background: rgba(255,255,255,0.9); border: none; padding: 10px 15px; border-radius: 5px; font-size: 12px; cursor: pointer; margin-bottom: 10px; display: block;';
+                debugButton.addEventListener('click', () => {
+                    this.debugTemplate();
+                });
+                document.getElementById('controls').appendChild(debugButton);
                 
                 this.arContent = document.getElementById('ar-content');
                 this.arVideo = document.getElementById('ar-video');
@@ -761,13 +770,27 @@
                 const targetH = Math.floor(this.templateHeight * scale);
                 const step = Math.max(4, Math.floor(8 / scale));
                 
+                console.log(`🔍 Template matching at scale ${scale}: template=${targetW}x${targetH}, step=${step}`);
+                console.log(`📐 Search area: ${frameData.width}x${frameData.height}, positions to test: ${Math.floor((frameData.width-targetW)/step) * Math.floor((frameData.height-targetH)/step)}`);
+                
                 let bestScore = 0;
                 let bestX = 0;
                 let bestY = 0;
+                let positionsChecked = 0;
+                let scoresAboveZero = 0;
                 
                 for (let y = 0; y <= frameData.height - targetH; y += step) {
                     for (let x = 0; x <= frameData.width - targetW; x += step) {
                         const score = this.calculateMatch(frameData, x, y, targetW, targetH);
+                        positionsChecked++;
+                        
+                        if (score > 0) {
+                            scoresAboveZero++;
+                            if (scoresAboveZero <= 5) { // Log first 5 non-zero scores for debugging
+                                console.log(`💡 Non-zero score at (${x},${y}): ${(score * 100).toFixed(1)}%`);
+                            }
+                        }
+                        
                         if (score > bestScore) {
                             bestScore = score;
                             bestX = x;
@@ -775,6 +798,8 @@
                         }
                     }
                 }
+                
+                console.log(`📊 Scale ${scale} results: checked ${positionsChecked} positions, ${scoresAboveZero} had score >0, best: ${(bestScore * 100).toFixed(1)}% at (${bestX},${bestY})`);
                 
                 return {
                     confidence: bestScore,
@@ -791,6 +816,11 @@
                 const step = 2; // Finer sampling for better accuracy
                 let colorVariance = 0;
                 let edgeScore = 0;
+                let validPixels = 0;
+                let targetAccessErrors = 0;
+                
+                // Debug first few pixels for troubleshooting
+                let debugPixels = [];
                 
                 for (let y = 0; y < height; y += step) {
                     for (let x = 0; x < width; x += step) {
@@ -804,7 +834,9 @@
                             const targetY = Math.floor((y / height) * this.templateHeight);
                             const targetIdx = (targetY * this.templateWidth + targetX) * 4;
                             
-                            if (targetIdx < this.targetImage.data.length) {
+                            if (targetIdx < this.targetImage.data.length && targetX < this.templateWidth && targetY < this.templateHeight) {
+                                validPixels++;
+                                
                                 // Enhanced RGB comparison with weighted channels
                                 let diff = 0;
                                 const frameR = frameData.data[frameIdx];
@@ -813,6 +845,15 @@
                                 const targetR = this.targetImage.data[targetIdx];
                                 const targetG = this.targetImage.data[targetIdx + 1];
                                 const targetB = this.targetImage.data[targetIdx + 2];
+                                
+                                // Debug first few comparisons
+                                if (debugPixels.length < 3) {
+                                    debugPixels.push({
+                                        pos: `(${targetX},${targetY})`,
+                                        frame: `[${frameR},${frameG},${frameB}]`,
+                                        target: `[${targetR},${targetG},${targetB}]`
+                                    });
+                                }
                                 
                                 // Weighted RGB difference (human eye sensitivity)
                                 diff = Math.abs(frameR - targetR) * 0.3 + 
@@ -827,8 +868,19 @@
                                 colorVariance += Math.abs(intensity - 128); // Distance from gray
                                 
                                 samples++;
+                            } else {
+                                targetAccessErrors++;
                             }
                         }
+                    }
+                }
+                
+                // Debug logging for problematic matches
+                if (samples === 0 || targetAccessErrors > 10) {
+                    console.log(`🚫 Match calculation failed at (${startX},${startY}): samples=${samples}, validPixels=${validPixels}, targetErrors=${targetAccessErrors}`);
+                    console.log(`📏 Template: ${this.templateWidth}x${this.templateHeight}, match area: ${width}x${height}`);
+                    if (debugPixels.length > 0) {
+                        console.log(`🎨 Sample pixels: ${debugPixels.map(p => `${p.pos}:${p.frame}→${p.target}`).join(', ')}`);
                     }
                 }
                 
@@ -838,11 +890,11 @@
                 const varianceBonus = Math.min(0.2, colorVariance / (samples * 100)); // Bonus for colorful images
                 
                 // Require some color variance but be less strict
-                const minVariance = 10; // Lower minimum color variance for varied lighting
+                const minVariance = 5; // Even lower minimum color variance
                 const avgVariance = colorVariance / samples;
                 
                 if (avgVariance < minVariance) {
-                    return baseScore * 0.3; // Reduce score for uniform areas but don't completely reject
+                    return baseScore * 0.5; // Less harsh penalty for uniform areas
                 }
                 
                 return Math.min(1, baseScore + varianceBonus);
@@ -928,6 +980,51 @@
                         this.arVideo.pause();
                     }
                 }
+            }
+
+            debugTemplate() {
+                console.log('=== TEMPLATE DEBUG ===');
+                console.log(`Template loaded: ${!!this.targetImage}`);
+                console.log(`Template dimensions: ${this.templateWidth}x${this.templateHeight}`);
+                console.log(`Template data length: ${this.targetImage ? this.targetImage.data.length : 'N/A'}`);
+                
+                if (this.targetImage) {
+                    // Sample first 10 pixels
+                    const samples = [];
+                    for (let i = 0; i < Math.min(40, this.targetImage.data.length); i += 4) {
+                        samples.push(`[${this.targetImage.data[i]},${this.targetImage.data[i+1]},${this.targetImage.data[i+2]}]`);
+                    }
+                    console.log(`First 10 pixels: ${samples.join(', ')}`);
+                    
+                    // Test template matching with itself (should be 100% match)
+                    if (this.canvas && this.ctx) {
+                        // Draw template to canvas for self-test
+                        const testCanvas = document.createElement('canvas');
+                        testCanvas.width = this.templateWidth;
+                        testCanvas.height = this.templateHeight;
+                        const testCtx = testCanvas.getContext('2d');
+                        
+                        const imageData = testCtx.createImageData(this.templateWidth, this.templateHeight);
+                        imageData.data.set(this.targetImage.data);
+                        testCtx.putImageData(imageData, 0, 0);
+                        
+                        // Test match template against itself
+                        const selfMatch = this.calculateMatch(this.targetImage, 0, 0, this.templateWidth, this.templateHeight);
+                        console.log(`🔍 Template self-match score: ${(selfMatch * 100).toFixed(1)}% (should be ~100%)`);
+                    }
+                }
+                
+                // Check current frame
+                if (this.canvas && this.ctx) {
+                    const frameData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                    console.log(`Current frame: ${this.canvas.width}x${this.canvas.height}`);
+                    const frameSamples = [];
+                    for (let i = 0; i < Math.min(40, frameData.data.length); i += 4) {
+                        frameSamples.push(`[${frameData.data[i]},${frameData.data[i+1]},${frameData.data[i+2]}]`);
+                    }
+                    console.log(`Frame first 10 pixels: ${frameSamples.join(', ')}`);
+                }
+                console.log('=== END DEBUG ===');
             }
 
             testDetection() {
