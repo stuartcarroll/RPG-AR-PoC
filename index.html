@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>v2.3 - RPG AR Experience - Image Tracking</title>
+    <title>v2.4 - RPG AR Experience - Image Tracking</title>
     <style>
         * {
             margin: 0;
@@ -156,7 +156,7 @@
     <div id="start-screen">
         <div class="container">
             <h1>RPG AR Experience</h1>
-            <p class="subtitle">Advanced Image Detection - v2.3</p>
+            <p class="subtitle">Advanced Image Detection - v2.4</p>
             
             <div class="artwork-card">
                 <h2 class="artwork-title">The Adoration of the Shepherds, Guido Reni</h2>
@@ -237,10 +237,12 @@
             }
 
             async startAR() {
+                console.log('🎬 startAR() called');
                 document.getElementById('start-screen').style.display = 'none';
                 document.getElementById('ar-container').style.display = 'block';
 
                 try {
+                    console.log('📲 Requesting camera access...');
                     const stream = await navigator.mediaDevices.getUserMedia({
                         video: { 
                             facingMode: 'environment',
@@ -249,6 +251,7 @@
                         }
                     });
 
+                    console.log('✅ Camera access granted');
                     this.video = document.getElementById('video-feed');
                     this.video.srcObject = stream;
                     
@@ -257,11 +260,12 @@
                     this.ctx = this.canvas.getContext('2d');
 
                     this.video.onloadedmetadata = () => {
-                        console.log(`Video dimensions: ${this.video.videoWidth}x${this.video.videoHeight}`);
+                        console.log(`📹 Video metadata loaded: ${this.video.videoWidth}x${this.video.videoHeight}`);
                         
                         // Set canvas to reasonable processing size
                         this.canvas.width = 320;
                         this.canvas.height = 240;
+                        console.log(`🖼️ Processing canvas set to: ${this.canvas.width}x${this.canvas.height}`);
                         
                         this.loadTargetImage();
                     };
@@ -311,12 +315,17 @@
             }
 
             startTracking() {
+                console.log('🚀 Starting tracking...');
+                console.log(`📋 Template status: ${this.templateWidth}x${this.templateHeight}, data: ${!!this.targetImage}`);
                 this.isTracking = true;
                 this.trackingLoop();
             }
 
             trackingLoop() {
-                if (!this.isTracking) return;
+                if (!this.isTracking) {
+                    console.log('❌ Tracking loop called but isTracking is false');
+                    return;
+                }
 
                 // TEMPORARY: Only process every 30 frames for cleaner debug logs
                 this.frameCount++;
@@ -325,12 +334,38 @@
                     return;
                 }
 
+                console.log(`🔄 Processing frame ${this.frameCount}`);
+
                 try {
+                    // Check if we have all required components
+                    if (!this.video) {
+                        console.log('❌ Video element not available');
+                        requestAnimationFrame(() => this.trackingLoop());
+                        return;
+                    }
+                    
+                    if (!this.canvas || !this.ctx) {
+                        console.log('❌ Canvas or context not available');
+                        requestAnimationFrame(() => this.trackingLoop());
+                        return;
+                    }
+                    
+                    if (!this.targetImage) {
+                        console.log('❌ Target image not loaded');
+                        requestAnimationFrame(() => this.trackingLoop());
+                        return;
+                    }
+                    
+                    console.log(`📹 Drawing video (${this.video.videoWidth}x${this.video.videoHeight}) to canvas (${this.canvas.width}x${this.canvas.height})`);
+                    
                     // Capture video frame
                     this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
                     const frameData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
                     
+                    console.log(`📊 Frame data: ${frameData.width}x${frameData.height}, ${frameData.data.length} bytes`);
+                    
                     // Simple template matching
+                    console.log('🎯 Starting detection...');
                     const detection = this.detectImage(frameData);
                     
                     // Update debug display
@@ -615,21 +650,42 @@
             }
 
             debugTemplate() {
-                console.log('=== TEMPLATE DEBUG ===');
-                console.log(`Template loaded: ${!!this.targetImage}`);
-                console.log(`Dimensions: ${this.templateWidth}x${this.templateHeight}`);
+                console.log('=== COMPLETE SYSTEM DEBUG ===');
+                console.log(`🎬 startAR called: ${!!this.video}`);
+                console.log(`📹 Video element: ${!!this.video}, playing: ${this.video && !this.video.paused}`);
+                console.log(`🖼️ Canvas: ${!!this.canvas}, size: ${this.canvas ? this.canvas.width + 'x' + this.canvas.height : 'N/A'}`);
+                console.log(`🎯 Target image loaded: ${!!this.targetImage}`);
+                console.log(`📐 Template dimensions: ${this.templateWidth}x${this.templateHeight}`);
+                console.log(`🔄 Tracking active: ${this.isTracking}`);
+                console.log(`📊 Frame count: ${this.frameCount}`);
                 
                 if (this.targetImage) {
-                    console.log(`Data length: ${this.targetImage.data.length}`);
+                    console.log(`💾 Template data length: ${this.targetImage.data.length}`);
                     
                     // Show first few pixels
                     const samples = [];
                     for (let i = 0; i < Math.min(20, this.targetImage.data.length); i += 4) {
                         samples.push(`[${this.targetImage.data[i]},${this.targetImage.data[i+1]},${this.targetImage.data[i+2]}]`);
                     }
-                    console.log(`First 5 pixels: ${samples.join(', ')}`);
+                    console.log(`🎨 First 5 pixels: ${samples.join(', ')}`);
                 }
-                console.log('=== END DEBUG ===');
+                
+                // Test if we can manually trigger detection
+                if (this.canvas && this.ctx && this.targetImage) {
+                    console.log('🧪 Testing manual detection...');
+                    try {
+                        this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+                        const frameData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                        console.log(`🖼️ Manual frame capture: ${frameData.width}x${frameData.height}, ${frameData.data.length} bytes`);
+                        
+                        const detection = this.detectImage(frameData);
+                        console.log(`🎯 Manual detection result: ${detection.confidence}`);
+                    } catch (error) {
+                        console.log(`❌ Manual detection failed: ${error.message}`);
+                    }
+                }
+                
+                console.log('=== END COMPLETE DEBUG ===');
             }
 
             updateStatus(message) {
