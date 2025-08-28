@@ -6,3 +6,4 @@ backup/
 *.md
 CNAME
 .claude/
+deploy.sh

@@ -18,7 +18,8 @@
       "WebFetch(domain:www.rokitrpg.com)",
       "Bash(git checkout:*)",
       "Bash(zip:*)",
-      "Bash(tar:*)"
+      "Bash(tar:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "ask": [],
