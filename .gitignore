@@ -2,3 +2,7 @@ node_modules/
 npm-debug.log*
 package-lock.json
 *.log
+backup/
+*.md
+CNAME
+.claude/

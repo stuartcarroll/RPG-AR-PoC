@@ -323,33 +323,45 @@
     </div>
 
     <script>
+        /**
+         * ImageTracker - Main AR Image Detection System
+         * 
+         * This class handles:
+         * 1. Camera access and video stream processing
+         * 2. Template matching for image detection
+         * 3. AR content positioning and display
+         * 4. Performance monitoring and debugging
+         */
         class ImageTracker {
             constructor() {
-                this.video = null;
-                this.canvas = null;
-                this.ctx = null;
-                this.debugCanvas = null;
-                this.debugCtx = null;
-                this.arVideo = null;
-                this.arContent = null;
+                // === VIDEO & CANVAS ELEMENTS ===
+                this.video = null;          // Main camera video element
+                this.canvas = null;         // Processing canvas (320x240) - where detection happens
+                this.ctx = null;           // 2D context for processing canvas
+                this.debugCanvas = null;   // Visual debug canvas (160x120) - shows what detection sees
+                this.debugCtx = null;     // Debug canvas context
+                this.arVideo = null;      // Overlay video element (vid1.mp4)
+                this.arContent = null;    // Container for AR overlay content
                 
-                this.isTracking = false;
-                this.targetImage = null;
-                this.lastDetection = null;
-                this.detectionHistory = [];
-                this.smoothingFactor = 0.9;
-                this.consecutiveDetections = 0;
-                this.requiredConsecutive = 3; // Need 3 consecutive detections for stability
-                this.lastStableDetection = null;
+                // === DETECTION STATE ===
+                this.isTracking = false;           // Main tracking loop state
+                this.targetImage = null;           // Processed target image data (paint1.jpg)
+                this.lastDetection = null;         // Timestamp of last successful detection
+                this.detectionHistory = [];        // Rolling history of detection results for smoothing
+                this.smoothingFactor = 0.9;        // Not currently used
+                this.consecutiveDetections = 0;    // Count of consecutive successful detections
+                this.requiredConsecutive = 3;     // Need 3 consecutive detections before showing AR
+                this.lastStableDetection = null;  // Last known stable detection position
                 
-                // Performance tracking
-                this.frameCount = 0;
-                this.lastFpsTime = Date.now();
+                // === PERFORMANCE MONITORING ===
+                this.frameCount = 0;        // Frame counter for FPS calculation
+                this.lastFpsTime = Date.now();  // Last FPS calculation timestamp
                 
-                // Detection parameters
-                this.confidenceThreshold = 0.65; // More reasonable threshold for real-world conditions
-                this.skipFrames = 2; // Process every 3rd frame for better responsiveness
-                this.currentFrame = 0;
+                // === DETECTION PARAMETERS ===
+                // These control how sensitive/strict the detection is
+                this.confidenceThreshold = 0.65;  // Minimum match confidence (0-1, higher = stricter)
+                this.skipFrames = 2;              // Process every 3rd frame (performance optimization)
+                this.currentFrame = 0;            // Current frame counter
                 
                 this.init();
             }
@@ -407,12 +419,30 @@
                 }
             }
 
+            /**
+             * STEP 1: Load and Process Target Image (paint1.jpg)
+             * 
+             * This function:
+             * 1. Loads paint1.jpg from the server
+             * 2. Scales it down to 80x107 pixels (portrait aspect ratio)  
+             * 3. Converts to ImageData for pixel-by-pixel comparison
+             * 4. Stores the processed image in this.targetImage
+             * 
+             * TROUBLESHOOTING: If detection fails, check:
+             * - Is paint1.jpg loading? Check browser network tab
+             * - Are there CORS errors? Image must be served from same domain
+             * - Is the aspect ratio correct? Original is 960x1280 (3:4 ratio)
+             */
             loadTargetImage() {
                 this.updateStatus('Loading target image...', 'searching');
+                console.log('🎯 Loading target image: paint1.jpg');
                 
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
                 img.onload = () => {
+                    console.log('✅ Target image loaded successfully');
+                    console.log(`📐 Original dimensions: ${img.width}x${img.height}`);
+                    
                     // Create standardized target maintaining aspect ratio
                     const targetCanvas = document.createElement('canvas');
                     const targetCtx = targetCanvas.getContext('2d');
@@ -420,9 +450,17 @@
                     targetCanvas.height = 107; // Maintain portrait aspect ratio (960:1280 ≈ 3:4)
                     targetCtx.drawImage(img, 0, 0, 80, 107);
                     
+                    console.log('🔄 Target image scaled to 80x107 for template matching');
+                    
                     this.targetImage = targetCtx.getImageData(0, 0, 80, 107);
+                    console.log(`💾 Target image data extracted: ${this.targetImage.data.length} bytes`);
+                    
                     this.updateStatus('Ready! Point camera at painting', 'searching');
                     this.startTracking();
+                };
+                img.onerror = (error) => {
+                    console.error('❌ Failed to load target image:', error);
+                    this.updateStatus('Failed to load target image', 'error');
                 };
                 img.src = 'paint1.jpg';
             }
@@ -432,38 +470,62 @@
                 this.trackingLoop();
             }
 
+            /**
+             * STEP 2: Main Detection Loop
+             * 
+             * This runs continuously (at video framerate) and:
+             * 1. Captures current video frame to processing canvas
+             * 2. Runs template matching to find the target image
+             * 3. Smooths detection results over multiple frames
+             * 4. Shows/hides AR content based on detection confidence
+             * 
+             * PERFORMANCE: Only processes every 3rd frame (skipFrames=2)
+             * STABILITY: Requires 3 consecutive good detections before showing AR
+             * 
+             * TROUBLESHOOTING: Watch console logs for:
+             * - Frame processing rate (should be ~10-15 FPS)
+             * - Detection confidence values (need >65% to trigger)
+             * - Position stability (jumps >80px are rejected)
+             */
             trackingLoop() {
                 if (!this.isTracking) return;
 
                 this.currentFrame++;
+                // PERFORMANCE OPTIMIZATION: Skip frames to reduce CPU load
                 if (this.currentFrame % (this.skipFrames + 1) !== 0) {
                     requestAnimationFrame(() => this.trackingLoop());
                     return;
                 }
 
                 try {
-                    // Draw video to processing canvas
+                    // STEP 2A: Capture current video frame to processing canvas (320x240)
                     this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
                     
-                    // Show debug view
+                    // STEP 2B: Show debug view (what the detection algorithm sees)
                     this.debugCtx.drawImage(this.canvas, 0, 0, this.debugCanvas.width, this.debugCanvas.height);
                     
+                    // STEP 2C: Get pixel data from processing canvas
                     const frameData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
                     
-                    // Detect image
+                    // STEP 2D: Run template matching algorithm
                     const detection = this.detectImage(frameData);
+                    console.log(`🔍 Detection result: confidence=${Math.round(detection.confidence * 100)}% at (${Math.round(detection.x)},${Math.round(detection.y)})`);
                     
-                    // Smooth detection
+                    // STEP 2E: Add to smoothing history
                     this.updateDetectionHistory(detection);
                     
+                    // STEP 2F: Calculate smoothed/averaged detection
                     const avgDetection = this.getSmoothedDetection();
                     
                     if (avgDetection.confidence > this.confidenceThreshold) {
-                        // Check for position stability - reject if detection jumps around too much
+                        console.log(`✅ Detection above threshold (${Math.round(avgDetection.confidence * 100)}% > ${Math.round(this.confidenceThreshold * 100)}%)`);
+                        
+                        // STABILITY CHECK: Reject if detection jumps around too much
                         if (this.lastStableDetection) {
                             const positionChange = Math.abs(avgDetection.x - this.lastStableDetection.x) + 
                                                  Math.abs(avgDetection.y - this.lastStableDetection.y);
                             if (positionChange > 80) { // Allow more movement for handheld devices
+                                console.log(`⚠️ Position jump too large: ${Math.round(positionChange)}px > 80px - reducing consecutive count`);
                                 this.consecutiveDetections = Math.max(0, this.consecutiveDetections - 1);
                                 requestAnimationFrame(() => this.trackingLoop());
                                 return;
@@ -472,11 +534,15 @@
                         
                         this.consecutiveDetections++;
                         this.lastStableDetection = avgDetection;
+                        console.log(`📊 Consecutive detections: ${this.consecutiveDetections}/${this.requiredConsecutive}`);
                         
                         if (this.consecutiveDetections >= this.requiredConsecutive) {
                             this.onImageDetected(avgDetection);
                         }
                     } else {
+                        if (avgDetection.confidence > 0) {
+                            console.log(`❌ Detection below threshold (${Math.round(avgDetection.confidence * 100)}% < ${Math.round(this.confidenceThreshold * 100)}%)`);
+                        }
                         this.consecutiveDetections = 0;
                         this.lastStableDetection = null;
                         this.onImageLost();
@@ -486,34 +552,54 @@
                     this.updateDebugInfo(avgDetection);
                     
                 } catch (error) {
-                    console.error('Tracking error:', error);
+                    console.error('❌ Tracking loop error:', error);
                 }
 
                 requestAnimationFrame(() => this.trackingLoop());
             }
 
+            /**
+             * STEP 3: Multi-Scale Template Matching
+             * 
+             * This tries to find the target image at different sizes in the video frame:
+             * 1. Tests 5 different scales (0.6x to 1.4x) to handle distance variations
+             * 2. For each scale, runs pixel-by-pixel template matching
+             * 3. Validates results to avoid false positives (size/aspect ratio checks)
+             * 4. Returns the best match across all scales
+             * 
+             * TROUBLESHOOTING:
+             * - Low confidence? Image might be too small/large (outside 0.6-1.4x range)
+             * - False positives? Size validation rejects matches outside 150-800px screen size
+             * - Aspect ratio validation rejects matches that aren't roughly rectangular
+             */
             detectImage(frameData) {
                 let bestMatch = { confidence: 0, x: 0, y: 0, scale: 1 };
                 
-                // Multi-scale detection
+                // Multi-scale detection - try different sizes of the target image
                 const scales = [0.6, 0.8, 1.0, 1.2, 1.4];
+                console.log(`🔍 Testing ${scales.length} scales: ${scales.join(', ')}`);
                 
                 for (const scale of scales) {
                     const match = this.templateMatch(frameData, scale);
                     
-                    // Require minimum size and aspect ratio to avoid false positives
-                    const minScreenSize = 150; // pixels
-                    const maxScreenSize = 800; // pixels
+                    // VALIDATION: Check if detected size makes sense on screen
+                    const minScreenSize = 150; // pixels - too small = likely false positive
+                    const maxScreenSize = 800; // pixels - too large = likely false positive
                     const screenW = (match.width || 80) * (window.innerWidth / this.canvas.width);
-                    const screenH = (match.height || 60) * (window.innerHeight / this.canvas.height);
+                    const screenH = (match.height || 107) * (window.innerHeight / this.canvas.height);
                     const aspectRatio = screenW / screenH;
+                    
+                    console.log(`📏 Scale ${scale}: confidence=${Math.round(match.confidence * 100)}%, screen size=${Math.round(screenW)}x${Math.round(screenH)}px, aspect=${aspectRatio.toFixed(2)}`);
                     
                     // Only accept reasonably sized rectangles with proper aspect ratio
                     if (match.confidence > bestMatch.confidence && 
                         screenW > minScreenSize && screenW < maxScreenSize &&
                         screenH > minScreenSize && screenH < maxScreenSize &&
                         aspectRatio > 0.8 && aspectRatio < 2.0) {
+                        console.log(`✅ New best match at scale ${scale}`);
                         bestMatch = { ...match, scale };
+                    } else if (match.confidence > bestMatch.confidence) {
+                        console.log(`❌ High confidence match rejected: size=${Math.round(screenW)}x${Math.round(screenH)}, aspect=${aspectRatio.toFixed(2)}`);
                     }
                 }
                 
